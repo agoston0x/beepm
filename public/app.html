@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>beepm — capture reading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div class="app-container">
+  <header class="app-header">
+    <div class="logo"><a href="/">beepm</a></div>
+    <div class="user-chip" id="userChip">anonymous</div>
+  </header>
+
+  <div class="capture-card">
+    <h2>Capture reading</h2>
+    <p>Photograph your blood pressure monitor. OCR runs locally in your browser.</p>
+
+    <div class="camera-box" id="cameraBox">
+      <div class="camera-placeholder">tap start camera</div>
+    </div>
+
+    <div class="action-row">
+      <button id="startCamBtn">Start camera</button>
+      <button id="captureBtn" class="secondary" disabled>Capture</button>
+    </div>
+    <div class="action-row" style="margin-top: 8px;">
+      <button id="uploadBtn" class="secondary" style="flex: 1;">Upload photo</button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none;">
+    </div>
+
+    <div class="reading-inputs">
+      <div class="field">
+        <label>Systolic</label>
+        <input type="number" id="sysInput" placeholder="120" min="50" max="250">
+      </div>
+      <div class="field">
+        <label>Diastolic</label>
+        <input type="number" id="diaInput" placeholder="80" min="30" max="150">
+      </div>
+      <div class="field">
+        <label>Pulse</label>
+        <input type="number" id="pulseInput" placeholder="72" min="30" max="200">
+      </div>
+    </div>
+
+    <button id="saveBtn" style="width: 100%;" disabled>Analyze &amp; save</button>
+    <div class="log" id="log" style="display:none;"></div>
+  </div>
+
+  <div class="status-box" id="statusBox" style="display:none;">
+    <div class="status-label">Status</div>
+    <div class="status-value" id="statusValue">—</div>
+    <div style="margin-top: 12px; color: var(--dim); font-size: 14px;" id="statusAdvice"></div>
+  </div>
+
+  <div class="history">
+    <h3>History</h3>
+    <div id="historyList">
+      <div style="color: var(--dim); font-size: 14px;">No readings yet.</div>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

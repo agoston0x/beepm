@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>beepm — private health tracking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="container">
+  <header class="site-header">
+    <div class="logo">beepm</div>
+    <nav class="nav">
+      <a href="/app.html">App</a>
+    </nav>
+  </header>
+
+  <main class="hero">
+    <h1 class="headline">Your health data.<br><span class="accent">Your keys.</span></h1>
+    <p class="subtitle">Private blood pressure tracking. Encrypted client-side. Analyzed by AI running in a TEE. You own the data, the keys, and the infrastructure.</p>
+    <div class="cta-row">
+      <a href="/app.html" class="btn-primary">Start tracking</a>
+      <a href="#how" class="btn-secondary">How it works</a>
+    </div>
+  </main>
+
+  <section class="pillars" id="how">
+    <div class="pillar">
+      <div class="pillar-num">01</div>
+      <h3>Capture</h3>
+      <p>Photograph your blood pressure monitor. OCR runs in your browser. The image never leaves your device.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">02</div>
+      <h3>Encrypt</h3>
+      <p>Your reading is encrypted client-side with a key derived from your wallet signature. Only you can decrypt.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">03</div>
+      <h3>Analyze</h3>
+      <p>Private LLM inference runs in a 0G TEE. Insights are delivered to you without exposing your data to any third party.</p>
+    </div>
+  </section>
+
+  <section class="stack">
+    <div class="stack-label">Built on</div>
+    <div class="stack-items">
+      <span>0G Storage</span>
+      <span>0G Compute</span>
+      <span>Dynamic</span>
+      <span>Tesseract.js</span>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-left">beepm · private health infra</div>
+    <div class="footer-right">v0.1 · ETHGlobal Cannes 2026</div>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,192 @@
+:root {
+  --bg: #ffffff;
+  --text: #1a1a2e;
+  --dim: #555566;
+  --line: #e8e8ee;
+  --teal: #00C9AE;
+  --card: #fafafc;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+.container { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
+
+.site-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0 48px;
+}
+.logo {
+  font-weight: 700; font-size: 22px; letter-spacing: -0.02em;
+}
+.nav a {
+  color: var(--text); text-decoration: none; font-weight: 500; font-size: 15px;
+  padding: 8px 16px; border-radius: 6px; transition: background 0.15s;
+}
+.nav a:hover { background: var(--card); }
+
+.hero { padding: 48px 0 96px; }
+.headline {
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 700; letter-spacing: -0.03em; line-height: 1.02;
+  margin: 0 0 32px;
+}
+.accent { color: var(--teal); }
+.subtitle {
+  font-size: 20px; color: var(--dim); max-width: 640px; margin: 0 0 40px;
+}
+
+.cta-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.btn-primary {
+  display: inline-block; background: var(--text); color: var(--bg);
+  text-decoration: none; padding: 16px 32px; font-weight: 600; font-size: 16px;
+  border-radius: 6px; transition: transform 0.15s;
+}
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-block; background: transparent; color: var(--text);
+  text-decoration: none; padding: 16px 32px; font-weight: 600; font-size: 16px;
+  border-radius: 6px; border: 1px solid var(--line);
+}
+.btn-secondary:hover { border-color: var(--text); }
+
+.pillars {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px; padding: 64px 0; border-top: 1px solid var(--line);
+}
+.pillar-num {
+  font-family: 'DM Mono', monospace; font-size: 14px;
+  color: var(--teal); margin-bottom: 16px;
+}
+.pillar h3 {
+  font-size: 28px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.01em;
+}
+.pillar p { color: var(--dim); margin: 0; font-size: 16px; }
+
+.stack {
+  padding: 64px 0 48px; border-top: 1px solid var(--line);
+}
+.stack-label {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+.stack-items {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.stack-items span {
+  font-weight: 500; font-size: 16px; padding: 10px 18px;
+  border: 1px solid var(--line); border-radius: 999px;
+}
+
+.site-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 32px 0 0; border-top: 1px solid var(--line);
+  font-family: 'DM Mono', monospace; font-size: 13px; color: var(--dim);
+}
+
+/* ===== App page ===== */
+.app-container { max-width: 520px; margin: 0 auto; padding: 24px; }
+.app-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 32px;
+}
+.app-header .logo a { color: var(--text); text-decoration: none; }
+.user-chip {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  background: var(--card); padding: 6px 12px; border-radius: 999px;
+}
+
+.capture-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 24px; margin-bottom: 24px;
+}
+.capture-card h2 {
+  font-size: 24px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;
+}
+.capture-card p { color: var(--dim); margin: 0 0 20px; font-size: 15px; }
+
+.camera-box {
+  width: 100%; aspect-ratio: 4/3; background: #000;
+  border-radius: 8px; overflow: hidden; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-box video, .camera-box canvas, .camera-box img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.camera-placeholder {
+  color: #666; font-family: 'DM Mono', monospace; font-size: 13px;
+}
+
+.action-row { display: flex; gap: 12px; margin-top: 16px; }
+.action-row button { flex: 1; }
+
+button {
+  background: var(--text); color: var(--bg); border: none;
+  padding: 14px 20px; font-weight: 600; font-size: 15px;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+  transition: transform 0.1s;
+}
+button:hover { transform: translateY(-1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+button.secondary {
+  background: transparent; color: var(--text); border: 1px solid var(--line);
+}
+
+.reading-inputs {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 20px 0;
+}
+.field label {
+  display: block; font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%; padding: 14px; border: 1px solid var(--line);
+  border-radius: 6px; font-family: 'Space Grotesk', sans-serif;
+  font-size: 24px; font-weight: 600; background: var(--bg);
+  text-align: center;
+}
+.field input:focus { outline: none; border-color: var(--teal); }
+
+.status-box {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px; margin-bottom: 16px;
+}
+.status-label {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.status-value { font-size: 20px; font-weight: 600; }
+.status-high { color: #e53935; }
+.status-elevated { color: #f39c12; }
+.status-normal { color: var(--teal); }
+.status-low { color: #3498db; }
+
+.history { padding-top: 24px; border-top: 1px solid var(--line); }
+.history h3 {
+  font-size: 18px; font-weight: 600; margin: 0 0 16px; letter-spacing: -0.01em;
+}
+.reading-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--line);
+}
+.reading-item .values { font-weight: 600; font-size: 16px; }
+.reading-item .time {
+  font-family: 'DM Mono', monospace; font-size: 12px; color: var(--dim);
+}
+
+.log {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--dim); background: var(--card); padding: 12px;
+  border-radius: 6px; margin-top: 16px; max-height: 120px; overflow-y: auto;
+}
+.log div { margin-bottom: 4px; }
