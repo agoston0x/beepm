@@ -92,13 +92,32 @@ OCR (tesseract) is included as a demo of what zeroclaw enables, but it's optiona
 
 ## Run It Yourself
 
-**Option 1: Use the demo node** (easiest)
+### Option 1: One-line install (easiest)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/agoston0x/beepm/main/quickstart.sh | bash
+```
+
+**What it does:**
+- Installs dependencies (tesseract, cloudflared, opencv)
+- Clones repo
+- Configures beepm-node
+- Starts node + cloudflared tunnel
+- Prints your public URL + QR code link
+
+**Takes ~2 minutes.** Then open the URL → scan QR → demo.
+
+---
+
+### Option 2: Use the demo node (no setup)
 - Open https://t.me/beepm_telegram_bot/beepm_tg_app
 - Sign in with email
 - Mint your INFT (gasless)
 - Start tracking
 
-**Option 2: Run your own node** (5 minutes)
+---
+
+### Option 3: Manual install (5 minutes)
 
 ### Prerequisites
 - Node.js 18+ ([download](https://nodejs.org))
