@@ -203,17 +203,23 @@ $('createProfileBtn').onclick = async () => {
       body: JSON.stringify({ encryptedProfile: encrypted })
     }).then(r => r.json());
     
-    if (!res.ok) throw new Error(res.error || 'registration failed');
+    if (!res.ok && !res.alreadyRegistered) throw new Error(res.error || 'registration failed');
     
     // Show result
     const fullDomain = res.fullDomain;
-    $('profileResult').innerHTML = `<div style="color:var(--ok);font-weight:600;margin-bottom:0.3rem">✓ Health ID created</div><div style="font-family:'DM Mono',monospace;font-size:0.78rem">${fullDomain}</div><div style="margin-top:0.4rem;font-size:0.72rem;color:var(--dim)">Your profile is encrypted with your wallet key. <a href="https://sepolia.basescan.org/tx/${res.tx}" target="_blank" style="color:var(--accent)">View tx →</a></div>`;
-    $('profileResult').classList.remove('hidden');
-    
-    toast('✓ Health ID registered on Base','ok');
-    
-    $('createProfileBtn').textContent = 'done';
-    setTimeout(() => enterMain(), 2000);
+    if (res.alreadyRegistered) {
+      $('profileResult').innerHTML = `<div style="color:var(--ok);font-weight:600;margin-bottom:0.3rem">✓ Health ID found</div><div style="font-family:'DM Mono',monospace;font-size:0.78rem">${fullDomain}</div><div style="margin-top:0.4rem;font-size:0.72rem;color:var(--dim)">You already have a health ID. Skipping profile update.</div>`;
+      $('profileResult').classList.remove('hidden');
+      toast('✓ Health ID already exists','ok');
+      $('createProfileBtn').textContent = 'continue';
+      setTimeout(() => enterMain(), 1500);
+    } else {
+      $('profileResult').innerHTML = `<div style="color:var(--ok);font-weight:600;margin-bottom:0.3rem">✓ Health ID created</div><div style="font-family:'DM Mono',monospace;font-size:0.78rem">${fullDomain}</div><div style="margin-top:0.4rem;font-size:0.72rem;color:var(--dim)">Your profile is encrypted with your wallet key. <a href="https://sepolia.basescan.org/tx/${res.tx}" target="_blank" style="color:var(--accent)">View tx →</a></div>`;
+      $('profileResult').classList.remove('hidden');
+      toast('✓ Health ID registered on Base','ok');
+      $('createProfileBtn').textContent = 'done';
+      setTimeout(() => enterMain(), 2000);
+    }
     
   } catch (e) {
     toast('profile: ' + e.message, 'err');

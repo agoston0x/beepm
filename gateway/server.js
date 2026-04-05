@@ -217,9 +217,16 @@ app.post('/api/profile/register', requireAuth, async (req, res) => {
   if (!encryptedProfile) return res.status(400).json({ error: 'missing encryptedProfile' });
   
   try {
-    // Check if already registered
-    const existing = await registryRead.getSubdomainByWallet(req.user.wallet);
+    // Check if already registered (handle contract revert gracefully)
+    let existing = '';
+    try {
+      existing = await registryRead.getSubdomainByWallet(req.user.wallet);
+    } catch (e) {
+      console.log(`[gateway] getSubdomainByWallet check failed (likely not registered): ${e.message}`);
+    }
+    
     if (existing && existing.length > 0) {
+      console.log(`[gateway] wallet ${req.user.wallet.slice(0,10)}... already has subdomain: ${existing}`);
       return res.json({ 
         ok: true, 
         subdomain: existing, 
