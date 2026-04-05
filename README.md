@@ -6,6 +6,17 @@ Your readings. Your keys. Your infrastructure.
 
 ---
 
+## Quick Install
+
+```bash
+rm -rf ~/beepm ~/.beepm-node
+curl -fsSL https://raw.githubusercontent.com/agoston0x/beepm/main/quickstart.sh | bash
+```
+
+Clones the repo, installs deps, starts your node, opens a cloudflared tunnel, and prints a public URL. ~30 seconds. Scan the QR → Telegram opens → demo.
+
+---
+
 ## The Problem
 
 LLMs can analyze health data, but they can't:
