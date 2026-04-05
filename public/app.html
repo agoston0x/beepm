@@ -82,7 +82,7 @@ input:focus{outline:none;border-color:var(--accent)}
 
 <!-- SIGNIN -->
 <div id="screen-signin" class="card hidden">
-  <div class="steps"><div class="step active"></div><div class="step"></div><div class="step"></div></div>
+  <div class="steps"><div class="step active"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
   <h2>sign in</h2>
   <p class="sub">we'll email you a code. a wallet is created automatically.</p>
   <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
@@ -95,7 +95,7 @@ input:focus{outline:none;border-color:var(--accent)}
 
 <!-- MINT -->
 <div id="screen-mint" class="card hidden">
-  <div class="steps"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
+  <div class="steps"><div class="step done"></div><div class="step active"></div><div class="step"></div><div class="step"></div></div>
   <h2>mint access INFT</h2>
   <p class="sub">one-time. unlocks 0G inference on the gateway. gas is sponsored — you pay nothing.</p>
   <button class="accent" id="mintBtn">mint agent NFT</button>
@@ -103,11 +103,32 @@ input:focus{outline:none;border-color:var(--accent)}
 
 <!-- PAIR -->
 <div id="screen-pair" class="card hidden">
-  <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
+  <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
   <h2>pair your node</h2>
   <p class="sub">your zeroclaw instance URL (shown on the node pairing page).</p>
   <input type="text" id="zcUrlInput" placeholder="https://your-beepm.example.com" value="https://beepm-node-demo.claws.page">
   <button class="accent" id="pairBtn">pair</button>
+</div>
+
+<!-- PROFILE -->
+<div id="screen-profile" class="card hidden">
+  <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
+  <h2>create health ID</h2>
+  <p class="sub">optional. your profile is encrypted and stored on Base (ENS-style subdomain).</p>
+  <input type="text" id="profileName" placeholder="name (optional)" autocomplete="name">
+  <input type="number" id="profileAge" placeholder="age (optional)" min="1" max="120">
+  <div style="margin-bottom:0.5rem">
+    <select id="profileGender" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:10px;padding:0.8rem;font-family:'Montserrat',sans-serif;font-size:0.95rem;color:var(--ink)">
+      <option value="">gender (optional)</option>
+      <option value="male">male</option>
+      <option value="female">female</option>
+      <option value="other">other</option>
+      <option value="prefer-not-to-say">prefer not to say</option>
+    </select>
+  </div>
+  <button class="accent" id="createProfileBtn">create health ID</button>
+  <button class="ghost" id="skipProfileBtn" style="margin-top:0.5rem">skip for now</button>
+  <div id="profileResult" class="hidden" style="margin-top:1rem;padding:0.75rem;background:rgba(34,201,160,0.08);border:1px solid rgba(34,201,160,0.3);border-radius:8px;font-size:0.82rem;word-break:break-all"></div>
 </div>
 
 <!-- MAIN APP -->
@@ -172,6 +193,6 @@ if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initD
   window.Telegram.WebApp.expand();
 }
 </script>
-<script type="module" src="/app.js?v=8"></script>
+<script type="module" src="/app.js?v=9"></script>
 </body>
 </html>

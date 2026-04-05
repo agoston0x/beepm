@@ -13,6 +13,8 @@ const INFT_CONTRACT = process.env.INFT_CONTRACT || '0x7fF7f65225e2ee92a4a81d3503
 const OG_ENDPOINT = 'https://compute-network-6.integratenetwork.work';
 const OG_MODEL = 'qwen/qwen-2.5-7b-instruct';
 const OG_API_KEY = process.env.OG_API_KEY;
+const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
+const REGISTRY_CONTRACT = '0xc95BCe68a26F31F2E3679Abe7c55eC776Ec6aaee';
 
 const provider = new ethers.JsonRpcProvider(OG_RPC);
 const INFT_ABI = [
@@ -21,10 +23,23 @@ const INFT_ABI = [
 ];
 const inft = new ethers.Contract(INFT_CONTRACT, INFT_ABI, provider);
 
+// Base Sepolia for profile registry
+const baseProvider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC);
+const REGISTRY_ABI = [
+  'function register(string subdomain, string encryptedData) external',
+  'function getProfile(string subdomain) external view returns (address, string, uint256)',
+  'function getSubdomainByWallet(address wallet) external view returns (string)'
+];
+const registryRead = new ethers.Contract(REGISTRY_CONTRACT, REGISTRY_ABI, baseProvider);
+
 // Sponsor wallet for gasless INFT mints
 const SPONSOR_PK = process.env.SPONSOR_PRIVATE_KEY;
 const sponsorWallet = SPONSOR_PK ? new ethers.Wallet(SPONSOR_PK, provider) : null;
 const inftSponsor = sponsorWallet ? new ethers.Contract(INFT_CONTRACT, INFT_ABI, sponsorWallet) : null;
+
+// Sponsor wallet on Base Sepolia for registry
+const baseSponsor = SPONSOR_PK ? new ethers.Wallet(SPONSOR_PK, baseProvider) : null;
+const registryWrite = baseSponsor ? new ethers.Contract(REGISTRY_CONTRACT, REGISTRY_ABI, baseSponsor) : null;
 
 const ai = new OpenAI({ baseURL: OG_ENDPOINT + '/v1/proxy', apiKey: OG_API_KEY });
 
@@ -184,6 +199,80 @@ app.get('/api/owns/:wallet', async (req, res) => {
   try {
     const balance = await inft.balanceOf(w);
     res.json({ wallet: w.toLowerCase(), balance: balance.toString(), owns: balance > 0n });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Profile registration — creates subdomain on Base Sepolia
+function generateSubdomain() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let sub = '';
+  for (let i = 0; i < 6; i++) sub += chars[Math.floor(Math.random() * chars.length)];
+  return sub;
+}
+
+app.post('/api/profile/register', requireAuth, async (req, res) => {
+  const { encryptedProfile } = req.body;
+  if (!encryptedProfile) return res.status(400).json({ error: 'missing encryptedProfile' });
+  
+  try {
+    // Check if already registered
+    const existing = await registryRead.getSubdomainByWallet(req.user.wallet);
+    if (existing && existing.length > 0) {
+      return res.json({ 
+        ok: true, 
+        subdomain: existing, 
+        fullDomain: `${existing}.beepm.agoston.base.eth`,
+        alreadyRegistered: true 
+      });
+    }
+
+    // Generate unique subdomain
+    let subdomain;
+    let attempts = 0;
+    while (attempts < 10) {
+      subdomain = generateSubdomain();
+      try {
+        const [addr] = await registryRead.getProfile(subdomain);
+        if (addr === ethers.ZeroAddress) break; // available
+      } catch { break; } // doesn't exist = available
+      attempts++;
+    }
+    if (attempts >= 10) return res.status(500).json({ error: 'subdomain generation failed' });
+
+    // Register on-chain (gasless for user)
+    console.log(`[gateway] registering ${subdomain} for ${req.user.wallet.slice(0,10)}...`);
+    const tx = await registryWrite.register(subdomain, encryptedProfile);
+    await tx.wait();
+    
+    console.log(`[gateway] profile registered · ${subdomain} · tx: ${tx.hash}`);
+    res.json({ 
+      ok: true, 
+      subdomain, 
+      fullDomain: `${subdomain}.beepm.agoston.base.eth`,
+      tx: tx.hash,
+      explorer: `https://sepolia.basescan.org/tx/${tx.hash}`
+    });
+  } catch (e) {
+    console.error('[gateway] profile register error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get profile by subdomain
+app.get('/api/profile/:subdomain', async (req, res) => {
+  const { subdomain } = req.params;
+  try {
+    const [wallet, encryptedData, timestamp] = await registryRead.getProfile(subdomain);
+    if (wallet === ethers.ZeroAddress) return res.status(404).json({ error: 'not found' });
+    res.json({ 
+      subdomain, 
+      fullDomain: `${subdomain}.beepm.agoston.base.eth`,
+      wallet, 
+      encryptedData, 
+      timestamp: timestamp.toString() 
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

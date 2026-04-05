@@ -17,7 +17,7 @@ const state = {
 
 // ============ UI helpers ============
 function show(screen) {
-  ['signin','mint','pair','main'].forEach(s => {
+  ['signin','mint','pair','profile','main'].forEach(s => {
     const el = $('screen-'+s);
     if (el) el.classList.toggle('hidden', s !== screen);
   });
@@ -130,7 +130,7 @@ async function authWithGateway() {
     localStorage.setItem('beepm.wallet', state.wallet);
     if (state.zeroclawdUrl) {
       try { await fetch(state.zeroclawdUrl+'/pair/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,jwt:state.jwt})}); } catch {}
-      await enterMain();
+      show('profile');
     } else {
       show('pair');
     }
@@ -162,10 +162,55 @@ $('pairBtn').onclick = async () => {
     state.zeroclawdUrl = url;
     localStorage.setItem('beepm.zcUrl', url);
     toast('✓ paired','ok');
-    await enterMain();
+    show('profile');
   } catch (e) {
     toast('pair: '+e.message,'err');
     $('pairBtn').disabled = false; $('pairBtn').textContent = 'pair';
+  }
+};
+
+// ============ Profile ============
+$('skipProfileBtn').onclick = () => { enterMain(); };
+
+$('createProfileBtn').onclick = async () => {
+  const name = $('profileName').value.trim();
+  const age = $('profileAge').value.trim();
+  const gender = $('profileGender').value;
+  
+  const profile = { name: name || null, age: age ? parseInt(age) : null, gender: gender || null };
+  
+  $('createProfileBtn').disabled = true;
+  $('createProfileBtn').textContent = 'encrypting…';
+  
+  try {
+    // Encrypt profile
+    const encrypted = await encrypt(profile);
+    
+    $('createProfileBtn').textContent = 'registering…';
+    
+    // Register on-chain
+    const res = await fetch(`${GATEWAY_URL}/api/profile/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.jwt },
+      body: JSON.stringify({ encryptedProfile: encrypted })
+    }).then(r => r.json());
+    
+    if (!res.ok) throw new Error(res.error || 'registration failed');
+    
+    // Show result
+    const fullDomain = res.fullDomain;
+    $('profileResult').innerHTML = `<div style="color:var(--ok);font-weight:600;margin-bottom:0.3rem">✓ Health ID created</div><div style="font-family:'DM Mono',monospace;font-size:0.78rem">${fullDomain}</div><div style="margin-top:0.4rem;font-size:0.72rem;color:var(--dim)">Your profile is encrypted with your wallet key. <a href="https://sepolia.basescan.org/tx/${res.tx}" target="_blank" style="color:var(--accent)">View tx →</a></div>`;
+    $('profileResult').classList.remove('hidden');
+    
+    toast('✓ Health ID registered on Base','ok');
+    
+    $('createProfileBtn').textContent = 'done';
+    setTimeout(() => enterMain(), 2000);
+    
+  } catch (e) {
+    toast('profile: ' + e.message, 'err');
+    $('createProfileBtn').disabled = false;
+    $('createProfileBtn').textContent = 'create health ID';
   }
 };
 

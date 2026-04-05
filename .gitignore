@@ -4,3 +4,8 @@ node_modules/
 data/
 *.log
 .DS_Store
+
+# Hardhat
+gateway/artifacts/
+gateway/cache/
+gateway/check-base-balance.js
