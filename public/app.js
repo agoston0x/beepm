@@ -1,413 +1,351 @@
-// beepm mini app - Dynamic JS SDK integration
-import { createDynamicClient, sendEmailOTP, verifyOTP, getWalletAccounts, getPrimaryWalletAccount, signMessage } from 'https://esm.sh/@dynamic-labs-sdk/client@0.23.2';
+// beepm mini app — SPA
+import { createDynamicClient, sendEmailOTP, verifyOTP, getWalletAccounts, signMessage, waitForClientInitialized } from 'https://esm.sh/@dynamic-labs-sdk/client@0.23.2';
 import { addEvmExtension } from 'https://esm.sh/@dynamic-labs-sdk/evm@0.23.2';
 import { getChainsMissingWaasWalletAccounts, createWaasWalletAccounts } from 'https://esm.sh/@dynamic-labs-sdk/client@0.23.2/waas';
 
 const DYNAMIC_ENV_ID = '9038e96d-3b30-43e3-877b-56d3d36f2613';
 const GATEWAY_URL = 'https://beepm-gateway.claws.page';
 
-// ================== state ==================
-const state = {
-  screen: 'signin',
-  email: null,
-  wallet: null,
-  otpVerification: null,
-  jwt: null,
-  zeroclawdUrl: localStorage.getItem('beepm.zcUrl') || '',
-  nftBalance: 0,
-};
-
 const $ = id => document.getElementById(id);
-const log = (panel, msg) => {
-  const el = $(panel);
-  if (!el) return;
-  el.style.display = 'block';
-  const div = document.createElement('div');
-  div.textContent = msg;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
-  console.log('[beepm]', msg);
+
+const state = {
+  wallet: null, walletAccount: null, jwt: null,
+  zeroclawdUrl: localStorage.getItem('beepm.zcUrl') || '',
+  kind: 'bp',
+  encKey: null,
 };
 
+// ============ UI helpers ============
 function show(screen) {
-  ['signin','mint','pair','capture'].forEach(s => {
+  ['signin','mint','pair','main'].forEach(s => {
     const el = $('screen-'+s);
     if (el) el.classList.toggle('hidden', s !== screen);
   });
-  state.screen = screen;
 }
-
-// ================== Dynamic init ==================
-let dynamicClient = null;
-async function initDynamic() {
-  try {
-    dynamicClient = createDynamicClient({
-      environmentId: DYNAMIC_ENV_ID,
-      metadata: { name: 'beepm', url: location.origin },
-    });
-    addEvmExtension();
-    log('signinLog', 'dynamic initialized');
-  } catch (e) {
-    log('signinLog', 'dynamic init error: ' + e.message);
-    console.error(e);
+function toast(msg, cls='') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + cls;
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.className = 'toast ' + cls, 3500);
+}
+function updateChip() {
+  if (state.wallet) {
+    const c = $('userChip');
+    c.textContent = state.wallet.slice(0,6)+'…'+state.wallet.slice(-4);
+    c.classList.add('ok');
   }
 }
 
-// ================== Sign-in flow ==================
+// ============ Encryption (AES-GCM with wallet-derived key) ============
+async function deriveEncKey() {
+  if (state.encKey) return state.encKey;
+  // Derive deterministic key from wallet signature
+  const derMsg = `beepm · derive encryption key\n\nWallet: ${state.wallet.toLowerCase()}`;
+  const sig = (await signMessage({ walletAccount: state.walletAccount, message: derMsg })).signature;
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sig));
+  state.encKey = await crypto.subtle.importKey('raw', hash, { name:'AES-GCM' }, false, ['encrypt','decrypt']);
+  return state.encKey;
+}
+async function encrypt(obj) {
+  const key = await deriveEncKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plain = new TextEncoder().encode(JSON.stringify(obj));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, plain));
+  // Return base64 of iv||ct
+  const combined = new Uint8Array(iv.length + ct.length);
+  combined.set(iv,0); combined.set(ct, iv.length);
+  return btoa(String.fromCharCode(...combined));
+}
+async function decrypt(b64) {
+  try {
+    const key = await deriveEncKey();
+    const raw = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+    const iv = raw.slice(0,12); const ct = raw.slice(12);
+    const plain = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+    return JSON.parse(new TextDecoder().decode(plain));
+  } catch { return null; }
+}
+
+// ============ Dynamic + sign-in ============
+async function initDynamic() {
+  createDynamicClient({ environmentId: DYNAMIC_ENV_ID, metadata: { name: 'beepm', url: location.origin } });
+  addEvmExtension();
+  try { await waitForClientInitialized(); } catch {}
+}
+
+let otpVerification = null;
 $('sendOtpBtn').onclick = async () => {
   const email = $('emailInput').value.trim();
   if (!email) return;
-  state.email = email;
   $('sendOtpBtn').disabled = true;
-  log('signinLog', 'sending OTP to ' + email);
+  $('sendOtpBtn').textContent = 'sending…';
   try {
     const r = await sendEmailOTP({ email });
-    state.otpVerification = r.otpVerification;
+    otpVerification = r?.otpVerification || (r?.verificationUUID ? r : r);
     $('otpStep').classList.remove('hidden');
     $('sendOtpBtn').textContent = 'code sent';
-    log('signinLog', 'OTP sent - check your email');
+    toast('check your email for the code','ok');
   } catch (e) {
-    log('signinLog', 'OTP send failed: ' + e.message);
-    $('sendOtpBtn').disabled = false;
+    toast('send failed: '+e.message,'err');
+    $('sendOtpBtn').disabled = false; $('sendOtpBtn').textContent = 'send code';
   }
 };
-
 $('verifyOtpBtn').onclick = async () => {
   const code = $('otpInput').value.trim();
-  if (code.length < 4) return;
+  if (code.length<4) return;
   $('verifyOtpBtn').disabled = true;
-  log('signinLog', 'verifying...');
+  $('verifyOtpBtn').textContent = 'verifying…';
   try {
-    await verifyOTP({ otpVerification: state.otpVerification, verificationToken: code });
-    log('signinLog', 'verified · creating wallet');
+    await verifyOTP({ otpVerification, verificationToken: code });
     const missing = getChainsMissingWaasWalletAccounts();
-    if (missing.length > 0) {
-      await createWaasWalletAccounts({ chains: missing });
-    }
+    if (missing.length>0) await createWaasWalletAccounts({ chains: missing });
     const wallets = getWalletAccounts();
-    log('signinLog', 'accounts: ' + wallets.length);
-    const evmWallet = wallets.find(w => w.chain === 'EVM') || wallets[0];
-    if (!evmWallet) { log('signinLog','no wallet found'); return; }
-    state.walletAccount = evmWallet;
-    state.wallet = evmWallet.address;
-    log('signinLog', 'wallet: ' + state.wallet);
-    updateChip();
-    await checkNFT();
-  } catch (e) {
-    log('signinLog', 'verify failed: ' + e.message);
-    console.error(e);
-    $('verifyOtpBtn').disabled = false;
-  }
-};
-
-// ================== NFT check ==================
-async function checkNFT() {
-  if (!state.wallet) return;
-  log('mintLog', 'checking NFT balance...');
-  try {
-    const r = await fetch(`${GATEWAY_URL}/api/owns/${state.wallet}`).then(r => r.json());
-    state.nftBalance = parseInt(r.balance || '0');
-    log('mintLog', `balance: ${r.balance} · owns: ${r.owns}`);
-    if (r.owns) {
-      await authWithGateway();
-    } else {
-      show('mint');
-    }
-  } catch (e) {
-    log('mintLog', 'check failed: ' + e.message);
-  }
-}
-
-// ================== Auth with gateway (sign challenge → JWT) ==================
-async function authWithGateway() {
-  try {
-    log('mintLog', 'requesting challenge...');
-    const ch = await fetch(`${GATEWAY_URL}/auth/challenge`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ wallet: state.wallet })
-    }).then(r => r.json());
-    log('mintLog', 'signing challenge...');
-    const signature = (await signMessage({ walletAccount: state.walletAccount, message: ch.message })).signature;
-    log('mintLog', 'verifying with gateway...');
-    const verify = await fetch(`${GATEWAY_URL}/auth/verify`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ wallet: state.wallet, signature })
-    }).then(r => r.json());
-    if (verify.token) {
-      state.jwt = verify.token;
-      localStorage.setItem('beepm.jwt', verify.token);
-      localStorage.setItem('beepm.wallet', state.wallet);
-      log('mintLog', 'JWT issued · 24h');
-      if (state.zeroclawdUrl) {
-        show('capture');
-        initCapture();
-      } else {
-        show('pair');
-      }
-    } else {
-      log('mintLog', 'verify failed: ' + (verify.error || 'unknown'));
-    }
-  } catch (e) {
-    log('mintLog', 'auth error: ' + e.message);
-    console.error(e);
-  }
-}
-
-// ================== Mint INFT (sponsored - gasless for user) ==================
-$('mintBtn').onclick = async () => {
-  $('mintBtn').disabled = true;
-  log('mintLog', 'requesting mint message...');
-  try {
-    // 1. Get the message to sign
-    const msgRes = await fetch(`${GATEWAY_URL}/api/mint-message/${state.wallet}`).then(r=>r.json());
-    log('mintLog', 'signing authorization...');
-    // 2. Sign with embedded wallet (just a message, no gas)
-    const signature = (await signMessage({ walletAccount: state.walletAccount, message: msgRes.message })).signature;
-    log('mintLog', 'gateway sponsoring mint tx...');
-    // 3. Gateway pays gas + mints
-    const r = await fetch(`${GATEWAY_URL}/api/mint`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ wallet: state.wallet, signature })
-    }).then(r=>r.json());
-    if (r.ok) {
-      log('mintLog', '✓ minted! tx ' + r.txHash.slice(0,10) + '…');
-      log('mintLog', 'gas: ' + r.gasUsed + ' (paid by gateway)');
-      state.nftBalance = 1;
-      await authWithGateway();
-    } else {
-      log('mintLog', 'mint failed: ' + (r.error || 'unknown'));
-      $('mintBtn').disabled = false;
-    }
-  } catch (e) {
-    log('mintLog', 'mint error: ' + e.message);
-    console.error(e);
-    $('mintBtn').disabled = false;
-  }
-};
-
-// ================== Pair zeroclawd ==================
-$('pairBtn').onclick = async () => {
-  const url = $('zcUrlInput').value.trim().replace(/\/$/, '');
-  if (!url) return;
-  $('pairBtn').disabled = true;
-  log('pairLog', 'testing ' + url);
-  try {
-    const info = await fetch(url + '/info').then(r => r.json());
-    log('pairLog', '✓ zeroclawd v' + info.version + ' · instance ' + info.instanceId);
-    // Register wallet + JWT with zeroclawd
-    const reg = await fetch(url + '/pair/register', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ token: info.pairingToken || 'auto', wallet: state.wallet, jwt: state.jwt })
-    }).then(r => r.json());
-    if (reg.ok) {
-      state.zeroclawdUrl = url;
-      localStorage.setItem('beepm.zcUrl', url);
-      log('pairLog', '✓ paired!');
-      show('capture');
-      initCapture();
-    } else {
-      log('pairLog', 'pair failed: ' + (reg.error || 'unknown'));
-      $('pairBtn').disabled = false;
-    }
-  } catch (e) {
-    log('pairLog', 'could not reach: ' + e.message);
-    $('pairBtn').disabled = false;
-  }
-};
-
-// ================== Chip / session ==================
-function updateChip() {
-  const chip = $('userChip');
-  if (state.wallet) {
-    chip.textContent = state.wallet.slice(0,6) + '…' + state.wallet.slice(-4);
-    chip.classList.add('ok');
-  }
-}
-
-// ================== Capture flow (simplified) ==================
-let mediaStream = null;
-let capturedDataUrl = null;
-
-function initCapture() {
-  log('log', 'ready · wallet ' + state.wallet.slice(0,10));
-  loadHistory();
-}
-
-$('startCamBtn')?.addEventListener('click', async () => {
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    const video = document.createElement('video');
-    video.srcObject = mediaStream; video.autoplay = true; video.playsInline = true;
-    $('cameraBox').innerHTML = '';
-    $('cameraBox').appendChild(video);
-    $('captureBtn').disabled = false;
-  } catch (e) {
-    log('log', 'camera error: ' + e.message);
-  }
-});
-
-$('captureBtn')?.addEventListener('click', () => {
-  const video = $('cameraBox').querySelector('video');
-  if (!video) return;
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  capturedDataUrl = canvas.toDataURL('image/png');
-  $('cameraBox').innerHTML = '';
-  const img = document.createElement('img'); img.src = capturedDataUrl;
-  $('cameraBox').appendChild(img);
-  if (mediaStream) { mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; }
-  runOCR(capturedDataUrl);
-});
-
-$('uploadBtn')?.addEventListener('click', () => $('fileInput').click());
-$('fileInput')?.addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    capturedDataUrl = ev.target.result;
-    $('cameraBox').innerHTML = '';
-    const img = document.createElement('img'); img.src = capturedDataUrl;
-    $('cameraBox').appendChild(img);
-    runOCR(capturedDataUrl);
-  };
-  reader.readAsDataURL(file);
-});
-
-async function runOCR(dataUrl) {
-  log('log', 'sending to zeroclawd OCR...');
-  try {
-    const r = await fetch(state.zeroclawdUrl + '/api/ocr', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ imageDataUrl: dataUrl })
-    }).then(r => r.json());
-    if (r.ok && r.text) {
-      log('log', 'ocr: "' + r.text + '"');
-      parseBP(r.text);
-    } else {
-      log('log', 'ocr failed: ' + (r.error || 'no result'));
-    }
-  } catch (e) {
-    log('log', 'ocr error: ' + e.message);
-  }
-}
-
-function parseBP(text) {
-  const digits = text.match(/\d{2,3}/g);
-  if (!digits) return;
-  if (digits.length >= 3) {
-    $('sysInput').value = digits[0]; $('diaInput').value = digits[1]; $('pulseInput').value = digits[2];
-  } else if (digits.length === 2) {
-    $('sysInput').value = digits[0]; $('diaInput').value = digits[1];
-  }
-  $('saveBtn').disabled = false;
-}
-
-[$('sysInput'),$('diaInput'),$('pulseInput')].forEach(el => el?.addEventListener('input', () => {
-  $('saveBtn').disabled = !($('sysInput').value && $('diaInput').value);
-}));
-
-$('saveBtn')?.addEventListener('click', async () => {
-  $('saveBtn').disabled = true;
-  const reading = {
-    systolic: parseInt($('sysInput').value),
-    diastolic: parseInt($('diaInput').value),
-    pulse: parseInt($('pulseInput').value) || null,
-    timestamp: Date.now()
-  };
-  log('log', 'analyzing via 0G...');
-  try {
-    // Call zeroclawd → gateway → 0G
-    const analysis = await fetch(state.zeroclawdUrl + '/api/analyze', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization': 'Bearer '+state.jwt},
-      body: JSON.stringify({ context: JSON.stringify(reading), question: `My latest BP: ${reading.systolic}/${reading.diastolic}, pulse ${reading.pulse}. Quick assessment in 1 sentence.` })
-    }).then(r => r.json());
-    if (analysis.reply) {
-      showStatus(reading, analysis.reply);
-    }
-    // Store (unencrypted for now - add AES in phase 2)
-    await fetch(state.zeroclawdUrl + '/api/reading', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization': 'Bearer '+state.jwt},
-      body: JSON.stringify({
-        encrypted: JSON.stringify(reading), // placeholder, replace with AES
-        timestamp: reading.timestamp,
-        ocr: `${reading.systolic}/${reading.diastolic}${reading.pulse?' '+reading.pulse:''}`
-      })
-    });
-    log('log', '✓ saved');
-    loadHistory();
-  } catch (e) {
-    log('log', 'save failed: ' + e.message);
-  }
-});
-
-function showStatus(reading, advice) {
-  const sys = reading.systolic, dia = reading.diastolic;
-  let s = 'normal';
-  if (sys >= 140 || dia >= 90) s = 'high';
-  else if (sys >= 130 || dia >= 85) s = 'elevated';
-  else if (sys < 90 || dia < 60) s = 'low';
-  $('statusValue').textContent = s;
-  $('statusAdvice').textContent = advice;
-  $('statusBox').classList.remove('hidden');
-}
-
-async function loadHistory() {
-  if (!state.zeroclawdUrl) return;
-  try {
-    const r = await fetch(state.zeroclawdUrl + '/api/readings', {
-      headers: {'Authorization': 'Bearer '+state.jwt}
-    }).then(r=>r.json());
-    const list = $('historyList');
-    if (!r.readings?.length) { list.innerHTML = '<div class="history-empty">no readings yet.</div>'; return; }
-    list.innerHTML = '';
-    for (const it of r.readings.slice().reverse().slice(0,20)) {
-      const div = document.createElement('div'); div.className='history-item';
-      const when = new Date(it.timestamp).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-      div.innerHTML = `<span class="val">${it.ocr||'—'}</span><span class="when">${when}</span>`;
-      list.appendChild(div);
-    }
-  } catch (e) { console.error(e); }
-}
-
-// Visible error overlay for debugging in Telegram webview
-window.addEventListener('error', e => showErr('ERROR: ' + e.message));
-window.addEventListener('unhandledrejection', e => showErr('PROMISE: ' + (e.reason?.message || e.reason)));
-function showErr(msg) {
-  let box = document.getElementById('__errbox');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = '__errbox';
-    box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#ff3366;color:#fff;padding:0.75rem;font-family:monospace;font-size:0.75rem;z-index:9999;max-height:40vh;overflow:auto;white-space:pre-wrap';
-    document.body.appendChild(box);
-  }
-  box.textContent += msg + '\n';
-}
-
-// ================== boot ==================
-(async () => {
-  try {
-  showErr('boot start · ' + new Date().toISOString().slice(11,19));
-  showErr('screens found: signin=' + !!$('screen-signin') + ' mint=' + !!$('screen-mint'));
-  // Always init Dynamic first (needed for signing even in restored sessions)
-  await initDynamic();
-  // Wait for init to complete + restore existing Dynamic session if any
-  try { const { waitForClientInitialized } = await import('https://esm.sh/@dynamic-labs-sdk/client@0.23.2'); await waitForClientInitialized(); } catch(e) {}
-
-  // If Dynamic restored a session, grab wallet
-  const accounts = getWalletAccounts();
-  if (accounts.length > 0) {
-    const w = accounts.find(a => a.chain === 'EVM') || accounts[0];
+    const w = wallets.find(a=>a.chain==='EVM') || wallets[0];
+    if (!w) throw new Error('no wallet created');
     state.walletAccount = w;
     state.wallet = w.address;
     updateChip();
-    log('signinLog','restored: ' + w.address.slice(0,10));
-    await checkNFT();
+    await checkAndProceed();
+  } catch (e) {
+    toast('verify failed: '+e.message,'err');
+    $('verifyOtpBtn').disabled = false; $('verifyOtpBtn').textContent = 'verify';
+  }
+};
+
+// ============ NFT + JWT ============
+async function checkAndProceed() {
+  const r = await fetch(`${GATEWAY_URL}/api/owns/${state.wallet}`).then(r=>r.json()).catch(()=>({owns:false}));
+  if (!r.owns) { show('mint'); return; }
+  await authWithGateway();
+}
+async function authWithGateway() {
+  try {
+    const ch = await fetch(`${GATEWAY_URL}/auth/challenge`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet})}).then(r=>r.json());
+    const sig = (await signMessage({ walletAccount: state.walletAccount, message: ch.message })).signature;
+    const v = await fetch(`${GATEWAY_URL}/auth/verify`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,signature:sig})}).then(r=>r.json());
+    if (!v.token) { toast('auth failed: '+(v.error||''),'err'); return; }
+    state.jwt = v.token;
+    localStorage.setItem('beepm.jwt', v.token);
+    localStorage.setItem('beepm.wallet', state.wallet);
+    if (state.zeroclawdUrl) {
+      try { await fetch(state.zeroclawdUrl+'/pair/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,jwt:state.jwt})}); } catch {}
+      await enterMain();
+    } else {
+      show('pair');
+    }
+  } catch (e) { toast('auth error: '+e.message,'err'); }
+}
+$('mintBtn').onclick = async () => {
+  $('mintBtn').disabled = true; $('mintBtn').textContent = 'signing…';
+  try {
+    const msgRes = await fetch(`${GATEWAY_URL}/api/mint-message/${state.wallet}`).then(r=>r.json());
+    const sig = (await signMessage({ walletAccount: state.walletAccount, message: msgRes.message })).signature;
+    $('mintBtn').textContent = 'minting…';
+    const r = await fetch(`${GATEWAY_URL}/api/mint`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,signature:sig})}).then(r=>r.json());
+    if (!r.ok) throw new Error(r.error||'mint failed');
+    toast('✓ INFT minted · gasless','ok');
+    await authWithGateway();
+  } catch (e) {
+    toast('mint: '+e.message,'err');
+    $('mintBtn').disabled = false; $('mintBtn').textContent = 'mint agent NFT';
+  }
+};
+$('pairBtn').onclick = async () => {
+  const url = $('zcUrlInput').value.trim().replace(/\/$/,'');
+  if (!url) return;
+  $('pairBtn').disabled = true; $('pairBtn').textContent = 'pairing…';
+  try {
+    await fetch(url+'/info').then(r=>r.json());
+    const reg = await fetch(url+'/pair/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:state.wallet,jwt:state.jwt})}).then(r=>r.json());
+    if (!reg.ok) throw new Error(reg.error||'register failed');
+    state.zeroclawdUrl = url;
+    localStorage.setItem('beepm.zcUrl', url);
+    toast('✓ paired','ok');
+    await enterMain();
+  } catch (e) {
+    toast('pair: '+e.message,'err');
+    $('pairBtn').disabled = false; $('pairBtn').textContent = 'pair';
+  }
+};
+
+// ============ Main app ============
+async function enterMain() {
+  show('main');
+  await loadHistory();
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x===t));
+  state.kind = t.dataset.kind;
+  $('form-bp').classList.toggle('hidden', state.kind !== 'bp');
+  $('form-weight').classList.toggle('hidden', state.kind !== 'weight');
+  $('analysisBox').classList.add('hidden');
+});
+
+// Enable save buttons as inputs fill
+function wireEnable(inputs, btnId){
+  const fn = () => { $(btnId).disabled = !inputs.every(id => $(id).value); };
+  inputs.forEach(id => $(id).addEventListener('input', fn));
+}
+wireEnable(['bpSys','bpDia'], 'saveBpBtn');
+wireEnable(['wtKg'], 'saveWtBtn');
+
+// Save BP
+$('saveBpBtn').onclick = async () => {
+  const reading = {
+    kind:'bp',
+    systolic: parseInt($('bpSys').value),
+    diastolic: parseInt($('bpDia').value),
+    pulse: parseInt($('bpPulse').value)||null,
+    timestamp: Date.now()
+  };
+  await saveReading(reading);
+};
+
+// Save Weight
+$('saveWtBtn').onclick = async () => {
+  const reading = {
+    kind:'weight',
+    kg: parseFloat($('wtKg').value),
+    body_fat: parseFloat($('wtFat').value)||null,
+    timestamp: Date.now()
+  };
+  await saveReading(reading);
+};
+
+async function saveReading(reading) {
+  const btn = reading.kind==='bp' ? $('saveBpBtn') : $('saveWtBtn');
+  btn.disabled = true; btn.textContent = 'encrypting…';
+  try {
+    const encrypted = await encrypt(reading);
+    btn.textContent = 'saving…';
+    await fetch(state.zeroclawdUrl+'/api/reading',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.jwt},
+      body: JSON.stringify({ encrypted, timestamp: reading.timestamp, ocr: null, kind: reading.kind })
+    });
+    toast('✓ encrypted & stored','ok');
+    btn.textContent = 'analyzing…';
+    await runAnalysis(reading);
+    // Clear inputs
+    if (reading.kind==='bp') { $('bpSys').value=''; $('bpDia').value=''; $('bpPulse').value=''; }
+    else { $('wtKg').value=''; $('wtFat').value=''; }
+    btn.textContent = 'save reading';
+    await loadHistory();
+  } catch (e) {
+    toast('save: '+e.message,'err');
+    btn.disabled = false; btn.textContent = 'save reading';
+  }
+}
+
+async function runAnalysis(reading) {
+  try {
+    const ctx = reading.kind==='bp'
+      ? `BP: ${reading.systolic}/${reading.diastolic}${reading.pulse?' pulse '+reading.pulse:''}`
+      : `Weight: ${reading.kg}kg${reading.body_fat?' · body fat '+reading.body_fat+'%':''}`;
+    const messages = [
+      { role:'system', content:'You are a private health assistant. Analyze readings briefly (≤2 sentences). Never diagnose. Be factual.' },
+      { role:'user', content:`Latest reading — ${ctx}. Brief assessment?` }
+    ];
+    const r = await fetch(GATEWAY_URL+'/api/infer',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.jwt},
+      body: JSON.stringify({ messages, temperature: 0.4 })
+    }).then(r=>r.json());
+    if (r.reply) {
+      $('analysisText').textContent = r.reply;
+      $('analysisBox').classList.remove('hidden');
+    }
+  } catch {}
+}
+
+// Photo capture (file input)
+$('photoBpBtn').onclick = () => $('bpFile').click();
+$('photoWtBtn').onclick = () => $('wtFile').click();
+$('bpFile').onchange = e => handlePhoto(e, 'bp');
+$('wtFile').onchange = e => handlePhoto(e, 'weight');
+
+async function handlePhoto(e, kind) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const dataUrl = ev.target.result;
+    toast('sending photo to your node…');
+    try {
+      const r = await fetch(state.zeroclawdUrl+'/api/capture',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.jwt},
+        body: JSON.stringify({ imageDataUrl: dataUrl, kind })
+      }).then(r=>r.json());
+      if (!r.ok) { toast('OCR failed — enter manually','err'); return; }
+      const v = r.reading?.values || {};
+      if (kind==='bp') {
+        if (v.systolic) $('bpSys').value = v.systolic;
+        if (v.diastolic) $('bpDia').value = v.diastolic;
+        if (v.pulse) $('bpPulse').value = v.pulse;
+        $('saveBpBtn').disabled = !($('bpSys').value && $('bpDia').value);
+        toast('OCR done · review and save','ok');
+      } else {
+        if (v.kg || v.systolic) $('wtKg').value = v.kg || v.systolic;
+        $('saveWtBtn').disabled = !$('wtKg').value;
+        toast('OCR done · review and save','ok');
+      }
+    } catch (err) { toast('capture: '+err.message,'err'); }
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+// History
+async function loadHistory() {
+  try {
+    const r = await fetch(state.zeroclawdUrl+'/api/readings',{headers:{'Authorization':'Bearer '+state.jwt}}).then(r=>r.json());
+    const list = $('historyList');
+    const rows = r.readings || [];
+    if (!rows.length) { list.innerHTML = '<div class="empty">no readings yet.</div>'; return; }
+    list.innerHTML = '';
+    const decrypted = [];
+    for (const it of rows.slice(-30).reverse()) {
+      const rec = await decrypt(it.encrypted) || { kind: it.kind || 'bp', fallback:true };
+      decrypted.push({ ...rec, timestamp: it.timestamp });
+    }
+    for (const d of decrypted) {
+      const when = new Date(d.timestamp).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      let val = '—', badge = 'BP';
+      if (d.fallback) val = '<span style="opacity:0.5">encrypted</span>';
+      else if (d.kind === 'weight') { badge = 'WT'; val = `${d.kg} kg${d.body_fat?' · '+d.body_fat+'%':''}`; }
+      else val = `${d.systolic}/${d.diastolic}${d.pulse?' · '+d.pulse:''}`;
+      const kindCls = d.kind === 'weight' ? 'weight' : '';
+      list.insertAdjacentHTML('beforeend', `<div class="entry"><span class="val"><span class="kind-badge ${kindCls}">${badge}</span>${val}</span><span class="meta"><span class="when">${when}</span><span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>encrypted</span></span></div>`);
+    }
+  } catch {}
+}
+
+// ============ startapp + boot ============
+function parseStartapp() {
+  try {
+    const p = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
+    if (!p.startsWith('pair_')) return;
+    const b64 = p.slice(5).replace(/-/g,'+').replace(/_/g,'/');
+    const pad = b64.length % 4 ? '='.repeat(4-(b64.length%4)) : '';
+    const j = JSON.parse(atob(b64+pad));
+    if (j.url) { state.zeroclawdUrl = j.url; localStorage.setItem('beepm.zcUrl', j.url); }
+  } catch {}
+}
+
+(async () => {
+  parseStartapp();
+  await initDynamic();
+  const accounts = getWalletAccounts();
+  if (accounts.length > 0) {
+    const w = accounts.find(a=>a.chain==='EVM') || accounts[0];
+    state.walletAccount = w;
+    state.wallet = w.address;
+    updateChip();
+    await checkAndProceed();
     return;
   }
   show('signin');
-  } catch(e) { showErr('BOOT: ' + (e.message || e) + '\n' + (e.stack||'').slice(0,400)); }
 })();

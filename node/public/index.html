@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>beepm node · pair</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05070b;--ink:#fff;--dim:#8a8f9c;--line:rgba(255,255,255,0.08);--card:rgba(255,255,255,0.03);--accent:#ff3366;--accent2:#9933ff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:'Montserrat',sans-serif;padding:2rem;max-width:540px;margin:0 auto}
+.bg-gradient{position:fixed;top:-30%;right:-40%;width:900px;height:900px;border-radius:50%;background:conic-gradient(from 180deg,#ff3366,#9933ff,#6633ff,transparent 250deg);filter:blur(80px);opacity:0.3;z-index:-1;pointer-events:none}
+h1{font-family:'Archivo Black',sans-serif;font-size:1.8rem;letter-spacing:-0.02em;margin-bottom:0.5rem}
+.dim{color:var(--dim);font-size:0.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.5rem;margin:1.5rem 0}
+.mono{font-family:'DM Mono',monospace;font-size:0.85rem}
+.qr{display:flex;justify-content:center;margin:1rem 0}
+.qr-inner{background:#fff;padding:1rem;border-radius:12px}
+.qr img{display:block;max-width:260px;width:100%}
+.status{display:inline-block;padding:0.3rem 0.8rem;border-radius:999px;font-size:0.75rem;font-family:'DM Mono',monospace;letter-spacing:0.05em}
+.status.ok{background:rgba(34,201,160,0.15);color:#22c9a0;border:1px solid rgba(34,201,160,0.3)}
+.status.wait{background:rgba(245,165,36,0.15);color:#f5a524;border:1px solid rgba(245,165,36,0.3)}
+.url{word-break:break-all;background:rgba(255,255,255,0.04);padding:0.6rem 0.8rem;border-radius:6px;font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--ink)}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+<h1>beepm node</h1>
+<p class="dim">scan this QR with your phone camera to pair with the beepm telegram mini app.</p>
+<div class="card" id="pair">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <span class="mono dim">pairing status</span>
+    <span class="status wait" id="statusEl">waiting</span>
+  </div>
+  <div class="qr"><div class="qr-inner" id="qr"></div></div>
+  <p class="dim mono" style="text-align:center;font-size:0.8rem">instance: <span id="iid">...</span></p>
+</div>
+<div class="card">
+  <p class="dim" style="margin-bottom:0.5rem;font-size:0.85rem">or open directly:</p>
+  <div class="url" id="tgLink">...</div>
+</div>
+<p class="dim mono" style="font-size:0.75rem;opacity:0.6;text-align:center;margin-top:2rem">beepm · ETHGlobal cannes 2026</p>
+<script>
+async function refresh(){
+  const info = await fetch('/info').then(r=>r.json());
+  document.getElementById('iid').textContent = info.instanceId;
+  const s = document.getElementById('statusEl');
+  if (info.paired) { s.textContent = 'paired · ' + info.wallet.slice(0,10); s.className = 'status ok'; }
+  else { s.textContent = 'waiting'; s.className = 'status wait'; }
+  // Build telegram deep link with base64-encoded node URL
+  const payload = btoa(JSON.stringify({ url: info.publicUrl, i: info.instanceId })).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const tgUrl = `https://t.me/beepm_telegram_bot/beepm_tg_app?startapp=pair_${payload}`;
+  document.getElementById('tgLink').textContent = tgUrl;
+  // QR → encode the Telegram deep link (camera scan opens Telegram directly)
+  const q = await fetch('/pair/qr?tg=' + encodeURIComponent(tgUrl)).then(r=>r.json());
+  document.getElementById('qr').innerHTML = '<img src="' + q.qrDataUrl + '" alt="QR">';
+}
+refresh(); setInterval(refresh, 4000);
+</script>
+</body>
+</html>

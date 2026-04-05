@@ -36,7 +36,8 @@ nav{position:relative;z-index:2;display:flex;justify-content:space-between;align
 .nav-links a:hover{color:var(--ink)}
 
 .hero-content{position:relative;z-index:1;padding-top:4rem;max-width:720px}
-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(3rem,8vw,6rem);line-height:0.95;letter-spacing:-0.03em;margin-bottom:1.5rem}
+h1{font-family:'Archivo Black',sans-serif;font-size:clamp(2.2rem,6vw,4.5rem);line-height:0.95;letter-spacing:-0.03em;margin-bottom:1.5rem;white-space:nowrap}
+h1 .r2,h1 .r3{white-space:nowrap}
 .tagline{font-size:1.3rem;color:var(--dim);max-width:520px;margin-bottom:2.5rem;font-weight:400}
 .cta-row{display:flex;gap:1rem;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.9rem 1.5rem;font-family:'Montserrat',sans-serif;font-weight:600;font-size:0.95rem;border-radius:8px;cursor:pointer;border:none;transition:all 0.15s}
@@ -94,11 +95,10 @@ footer{border-top:1px solid var(--line);padding:2.5rem 0;margin-top:3rem;font-si
   <div class="arc2"></div>
   <div class="wrap">
     <div class="hero-content">
-      <h1>your health<br>data.<br>your keys.</h1>
-      <p class="tagline">private blood pressure tracking. self-hosted. client-side encrypted. 0G TEE inference.</p>
+      <h1><span class="r1">track &amp; evaluate</span><br><span class="r2">health data</span><br><span class="r3">securely.</span></h1>
+      <p class="tagline">your readings — evaluated by a private LLM in 0G's TEE network, stored on infra you control. runs on zeroclaw.</p>
       <div class="cta-row">
-        <a href="https://t.me/beepm_telegram_bot/beepm_tg_app" class="btn btn-primary">open app →</a>
-        <a href="#install" class="btn btn-secondary">install zeroclawd</a>
+        <a href="/install" class="btn btn-primary">install →</a>
       </div>
     </div>
   </div>
@@ -111,18 +111,18 @@ footer{border-top:1px solid var(--line);padding:2.5rem 0;margin-top:3rem;font-si
     <div class="grid-3">
       <div class="tile">
         <div class="tile-num">01</div>
-        <h3>install zeroclawd</h3>
-        <p>run the daemon on your laptop or VPS. docker one-liner. it owns your data.</p>
+        <h3>install zeroclaw</h3>
+        <p>run zeroclaw on a VPS. add the beepm skill. your node owns your health readings — not us.</p>
       </div>
       <div class="tile">
         <div class="tile-num">02</div>
-        <h3>mint access NFT</h3>
-        <p>open telegram mini app. dynamic wallet creates automatically. mint the access NFT to unlock 0G inference.</p>
+        <h3>mint access INFT</h3>
+        <p>open telegram mini app. dynamic creates wallet. gateway sponsors the mint — you pay nothing.</p>
       </div>
       <div class="tile">
         <div class="tile-num">03</div>
-        <h3>pair & capture</h3>
-        <p>scan the pairing QR. photo your monitor. OCR runs on your daemon. 0G TEE analyzes. encrypted end-to-end.</p>
+        <h3>capture &amp; analyze</h3>
+        <p>photo your BP monitor or scale. OCR runs on your node. 0G TEE agent evaluates via gateway. reading lives on your infra.</p>
       </div>
     </div>
   </div>
@@ -135,42 +135,45 @@ footer{border-top:1px solid var(--line);padding:2.5rem 0;margin-top:3rem;font-si
     <div class="arch">
       <div class="arch-block highlight">
         <div class="k">your infra</div>
-        <div class="v">zeroclawd</div>
-        <div class="d">daemon on your machine. stores encrypted readings, runs python OCR, calls gateway for 0G inference.</div>
+        <div class="v">zeroclaw + beepm skill</div>
+        <div class="d">run <a href="https://github.com/zeroclaw-labs/zeroclaw" style="color:#ff6b8a">zeroclaw</a> on your VPS. add the beepm skill. stores your readings, runs tesseract OCR, calls the gateway for private 0G inference.</div>
       </div>
       <div class="arch-block">
         <div class="k">daily use</div>
         <div class="v">telegram mini app</div>
-        <div class="d">capture flow. camera → zeroclawd OCR → encrypted save. dynamic wallet for auth.</div>
+        <div class="d">capture → photo → your node → OCR + 0G analyze → reading stored locally. dynamic embedded wallet. INFT-gated.</div>
       </div>
       <div class="arch-block">
         <div class="k">auth</div>
         <div class="v">beepm gateway</div>
-        <div class="d">verifies NFT ownership on-chain. issues JWT. rate-limits 0G inference per NFT holder.</div>
+        <div class="d">verifies INFT ownership on-chain. sponsors gasless mints. issues JWTs. gates 0G calls per holder.</div>
       </div>
       <div class="arch-block">
         <div class="k">compute</div>
         <div class="v">0G TEE network</div>
-        <div class="d">decentralized inference in trusted execution environments. qwen 2.5 7b. verifiable.</div>
+        <div class="d">decentralized inference in trusted execution environments. qwen 2.5 7b. TEE-verifiable.</div>
       </div>
+    </div>
+    <div style="margin-top:1.5rem;padding:1rem 1.25rem;background:rgba(245,165,36,0.08);border:1px solid rgba(245,165,36,0.25);border-radius:10px;font-size:0.85rem;color:var(--dim)">
+      <strong style="color:#f5a524">beta · VPS only.</strong> your node needs a public HTTPS URL (VPS, EC2, fly.io, or ngrok/cloudflared tunnel). v2 adds fully local install via <a href="https://github.com/zeroclaw-labs/zeroclaw" style="color:#ff6b8a">zeroclaw</a> + gateway relay.
     </div>
   </div>
 </section>
 
 <section class="section" id="install">
   <div class="wrap">
-    <p class="section-label">install zeroclawd</p>
-    <h2>one command.<br>thirty seconds.</h2>
-    <div class="code"><span class="c"># docker</span>
-<span class="k">docker run</span> -d -p 3064:3064 \
-  -v ~/.zeroclawd:/data \
-  agoston0x/zeroclawd
+    <p class="section-label">install</p>
+    <h2>zeroclaw.<br>plus beepm skill.</h2>
+    <div class="code"><span class="c"># on your VPS / EC2</span>
+<span class="k">brew install</span> zeroclaw       <span class="c"># or: cargo install zeroclaw</span>
+<span class="k">zeroclaw</span> onboard           <span class="c"># configure workspace + channels</span>
 
-<span class="c"># or npm</span>
-<span class="k">npm install</span> -g zeroclawd
-<span class="k">zeroclawd</span> init
-<span class="k">zeroclawd</span> start</div>
-    <p style="margin-top:1.5rem;color:var(--dim);font-size:0.9rem">open <span class="code" style="display:inline;padding:0.15rem 0.5rem">http://localhost:3064</span> → scan pairing QR with telegram mini app.</p>
+<span class="c"># add the beepm skill</span>
+<span class="k">zeroclaw</span> skill add beepm
+<span class="k">pip install</span> opencv-python-headless pytesseract
+
+<span class="k">zeroclaw</span> daemon               <span class="c"># start</span></div>
+    <p style="margin-top:1.5rem;color:var(--dim);font-size:0.9rem">expose over HTTPS (caddy reverse proxy or cloudflared tunnel) → scan pairing QR with your phone → telegram mini app opens pre-paired. <a href="/install" style="color:var(--ink)">full guide →</a></p>
   </div>
 </section>
 

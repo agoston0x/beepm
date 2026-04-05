@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>beepm — install zeroclawd</title>
+<title>beepm — install your node</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#05070b;--ink:#fff;--dim:#8a8f9c;--line:rgba(255,255,255,0.08);--card:rgba(255,255,255,0.03);--accent:#ff3366;--accent2:#9933ff}
+:root{--bg:#05070b;--ink:#fff;--dim:#8a8f9c;--line:rgba(255,255,255,0.08);--card:rgba(255,255,255,0.03);--accent:#ff3366;--accent2:#9933ff;--warn:#f5a524}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--ink);font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased}
 body{line-height:1.5;overflow-x:hidden}
@@ -26,17 +26,15 @@ p{color:var(--dim);margin-bottom:1rem}
 .code{font-family:'DM Mono',monospace;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:8px;padding:1rem 1.25rem;font-size:0.85rem;line-height:1.7;overflow-x:auto;white-space:pre;color:#d0d5e0;margin:0.75rem 0}
 .code .c{color:#6a6f7a}
 .code .k{color:#ff6b8a}
-.tabs{display:flex;gap:0.5rem;margin:1.5rem 0 0}
-.tab{padding:0.5rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:8px 8px 0 0;cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:600;font-size:0.85rem;color:var(--dim);border-bottom:none}
-.tab.active{background:rgba(255,255,255,0.04);color:var(--ink)}
-.tab-content{display:none}
-.tab-content.active{display:block}
 .callout{background:linear-gradient(135deg,rgba(255,51,102,0.08),rgba(153,51,255,0.08));border:1px solid rgba(255,51,102,0.25);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
-.callout .k{font-family:'Archivo Black',sans-serif;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);margin-bottom:0.4rem}
+.callout.warn{background:linear-gradient(135deg,rgba(245,165,36,0.08),rgba(245,165,36,0.04));border-color:rgba(245,165,36,0.3)}
+.callout .k{font-family:'Archivo Black',sans-serif;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--warn);margin-bottom:0.4rem}
+.callout:not(.warn) .k{color:var(--dim)}
 ul{margin:0.5rem 0 1rem 1.25rem;color:var(--dim)}
 li{margin-bottom:0.35rem}
 code{font-family:'DM Mono',monospace;background:rgba(255,255,255,0.06);padding:0.1rem 0.4rem;border-radius:4px;font-size:0.85em;color:var(--ink)}
 footer{border-top:1px solid var(--line);padding:2rem 0;margin-top:4rem;font-size:0.85rem;color:var(--dim)}
+.tag{display:inline-block;font-family:'DM Mono',monospace;font-size:0.7rem;padding:0.2rem 0.5rem;border-radius:4px;background:rgba(245,165,36,0.15);color:var(--warn);margin-left:0.5rem;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -51,95 +49,80 @@ footer{border-top:1px solid var(--line);padding:2rem 0;margin-top:4rem;font-size
     </div>
   </nav>
 
-  <h1>install zeroclawd</h1>
-  <p class="lead">zeroclawd is the daemon that runs on your machine. it stores your encrypted readings and runs OCR locally. pick your install method.</p>
+  <h1>install your node</h1>
+  <p class="lead">your beepm node is where OCR runs and your readings live. nobody else can read them — not us, not the gateway. you deploy it, you own it.</p>
 
-  <div class="callout">
-    <div class="k">prerequisites</div>
-    <p style="margin:0;color:var(--dim);font-size:0.9rem">• a machine running linux/macOS (VPS or local)<br>• docker OR node 18+<br>• a telegram account</p>
+  <div class="callout warn">
+    <div class="k">beta · VPS only</div>
+    <p style="margin:0;color:var(--ink);font-size:0.95rem;line-height:1.5">during beta, your node <strong>must run with a public HTTPS URL</strong> — a VPS, EC2, fly.io, or similar. the telegram mini app cannot reach servers inside your home network.</p>
+    <p style="margin:0.5rem 0 0;color:var(--dim);font-size:0.85rem">v2 will support fully local (home) install via a gateway relay. coming soon.</p>
   </div>
 
-  <h2>pick a method</h2>
-  <div class="tabs">
-    <div class="tab active" data-t="docker">docker</div>
-    <div class="tab" data-t="npm">npm</div>
-    <div class="tab" data-t="source">source</div>
-  </div>
-
-  <div class="tab-content active" data-t="docker">
-    <div class="code"><span class="c"># pull & run</span>
+  <h2>1 · deploy the node</h2>
+  <h3>docker <span class="tag">recommended</span></h3>
+  <div class="code"><span class="c"># on your VPS / EC2 / fly.io</span>
 <span class="k">docker run</span> -d \
-  --name zeroclawd \
+  --name beepm-node \
   -p 3064:3064 \
-  -v ~/.zeroclawd:/data \
-  agoston0x/zeroclawd:latest
+  -v ~/.beepm:/data \
+  -e GATEWAY_URL=https://beepm-gateway.claws.page \
+  agoston0x/beepm-node:latest
 
 <span class="c"># check</span>
 <span class="k">curl</span> http://localhost:3064/health</div>
-    <p>open <code>http://localhost:3064</code> in your browser → you'll see the pairing QR.</p>
-  </div>
 
-  <div class="tab-content" data-t="npm">
-    <div class="code"><span class="c"># install</span>
-<span class="k">npm install</span> -g zeroclawd
-
-<span class="c"># install ssocr (for OCR)</span>
-<span class="k">sudo apt install</span> ssocr        <span class="c"># debian/ubuntu</span>
-<span class="k">brew install</span> ssocr              <span class="c"># macOS</span>
-
-<span class="c"># configure</span>
-<span class="k">zeroclawd</span> init
-<span class="c"># prompts: port, data dir, gateway url</span>
-
-<span class="c"># run</span>
-<span class="k">zeroclawd</span> start</div>
-  </div>
-
-  <div class="tab-content" data-t="source">
-    <div class="code"><span class="c"># clone</span>
-<span class="k">git clone</span> https://github.com/agoston0x/zeroclawd
-<span class="k">cd</span> zeroclawd
+  <h3>from source</h3>
+  <div class="code"><span class="c"># clone on your VPS</span>
+<span class="k">git clone</span> https://github.com/agoston0x/beepm-node
+<span class="k">cd</span> beepm-node
 <span class="k">npm install</span>
 
-<span class="c"># python deps for OCR</span>
+<span class="c"># python OCR deps</span>
 <span class="k">pip install</span> opencv-python-headless numpy
 
-<span class="c"># run</span>
-<span class="k">node</span> bin/zeroclawd.js init
-<span class="k">node</span> bin/zeroclawd.js start</div>
-  </div>
+<span class="k">node</span> bin/start.js</div>
 
-  <h2>expose to telegram</h2>
-  <p>zeroclawd needs to be reachable from your telegram mini app. for local dev use ngrok, cloudflared, or tailscale funnel:</p>
-  <div class="code"><span class="c"># ngrok</span>
-<span class="k">ngrok</span> http 3064
+  <h2>2 · expose HTTPS <span class="tag">required</span></h2>
+  <p>point a subdomain at your VPS (or use caddy/nginx) so the mini app can reach it over HTTPS:</p>
+  <div class="code"><span class="c"># Caddy (auto HTTPS)</span>
+your-beepm.example.com {
+  reverse_proxy localhost:3064
+}</div>
+  <p>or use a tunnel while testing:</p>
+  <div class="code"><span class="c"># cloudflared</span>
+<span class="k">cloudflared</span> tunnel --url http://localhost:3064
 
-<span class="c"># cloudflared</span>
-<span class="k">cloudflared</span> tunnel --url http://localhost:3064</div>
-  <p>copy the public URL — you'll enter it in the pairing step.</p>
+<span class="c"># ngrok</span>
+<span class="k">ngrok</span> http 3064</div>
 
-  <h2>pair with telegram</h2>
+  <h2>3 · pair with the mini app</h2>
   <ul>
-    <li>open the beepm mini app in telegram → <a href="https://t.me/beepm_telegram_bot/beepm_tg_app" style="color:var(--ink)">t.me/beepm_telegram_bot/beepm_tg_app</a></li>
-    <li>sign in with email or passkey (dynamic creates your wallet)</li>
-    <li>mint your access NFT (one-time)</li>
-    <li>tap "pair zeroclawd" and scan your instance QR (or paste the URL)</li>
+    <li>visit <code>https://your-beepm.example.com</code> — you'll see a pairing QR</li>
+    <li>open your phone camera → scan the QR</li>
+    <li>telegram opens the beepm mini app with your node pre-filled</li>
+    <li>sign up with a passkey → dynamic creates your wallet</li>
+    <li>mint your access INFT (gas sponsored, you pay nothing)</li>
     <li>done. capture your first reading.</li>
   </ul>
 
+  <h2>daily use</h2>
+  <ul>
+    <li>open mini app in telegram → tap camera</li>
+    <li>photo goes straight to <strong>your</strong> node (encrypted in transit)</li>
+    <li>your node OCRs it, stores locally, calls 0G agent via our gateway</li>
+    <li>agent reply appears in the mini app</li>
+    <li>full dashboard at <a href="/dashboard" style="color:var(--ink)">beepm.claws.page/dashboard</a> (sign in with wallet)</li>
+  </ul>
+
   <h2>troubleshooting</h2>
-  <h3>OCR not finding digits</h3>
-  <p>ensure <code>ssocr</code> is installed and in PATH. check <code>zeroclawd</code> logs.</p>
-  <h3>can't reach instance from telegram</h3>
-  <p>zeroclawd must be publicly reachable. use ngrok/cloudflared or deploy to a VPS.</p>
+  <h3>mini app says "can't reach node"</h3>
+  <p>your HTTPS URL isn't resolving or the cert is self-signed. telegram requires a real HTTPS cert. use caddy or cloudflared.</p>
+  <h3>OCR returns garbage</h3>
+  <p>good lighting, camera flat to screen, fill most of the frame. seven-segment displays only for v1.</p>
+  <h3>INFT mint failing</h3>
+  <p>gas is sponsored — you don't need OG tokens. if it fails, check gateway health: <code>curl https://beepm-gateway.claws.page/health</code></p>
 
   <footer>beepm · ETHGlobal cannes 2026 · built on 0G + dynamic + telegram</footer>
 </div>
-<script>
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.dataset.t===t.dataset.t));
-});
-</script>
 </body>
 </html>
