@@ -77,7 +77,10 @@ input:focus{outline:none;border-color:var(--accent)}
 
 <header>
   <div class="logo"><a href="/">beepm</a></div>
-  <div class="chip" id="userChip">—</div>
+  <div style="display:flex;gap:0.4rem;align-items:center">
+    <div class="chip" id="userChip">—</div>
+    <button id="signOutBtn" class="chip hidden" style="border:none;cursor:pointer;background:rgba(255,64,96,0.1);color:#ff4060;border:1px solid rgba(255,64,96,0.3);padding:0.3rem 0.7rem;font-size:0.7rem;font-family:'DM Mono',monospace">sign out</button>
+  </div>
 </header>
 
 <!-- SIGNIN -->
@@ -193,6 +196,6 @@ if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initD
   window.Telegram.WebApp.expand();
 }
 </script>
-<script type="module" src="/app.js?v=9"></script>
+<script type="module" src="/app.js?v=10"></script>
 </body>
 </html>

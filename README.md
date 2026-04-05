@@ -98,16 +98,58 @@ OCR (tesseract) is included as a demo of what zeroclaw enables, but it's optiona
 - Mint your INFT (gasless)
 - Start tracking
 
-**Option 2: Run your own node** (private)
-1. Clone this repo
-2. Point your AI agent at `SKILL.md` — it will:
-   - Install dependencies (tesseract, opencv, node)
-   - Start beepm-node on port 3064
-   - Expose it via cloudflared tunnel (free HTTPS)
-   - Generate a pairing QR code
-3. Scan the QR with your phone → Telegram mini app opens, pre-paired
+**Option 2: Run your own node** (5 minutes)
 
-**Your agent can use**: Claude Code, Cursor, GitHub Copilot Workspace, or any CLI agent.
+### Prerequisites
+- Node.js 18+ ([download](https://nodejs.org))
+- macOS or Linux
+
+### Install & Run
+
+```bash
+# 1. Install system dependencies
+# macOS:
+brew install tesseract cloudflared
+# Linux:
+sudo apt-get install -y tesseract-ocr
+# Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+
+# 2. Clone and install
+git clone https://github.com/agoston0x/beepm.git
+cd beepm/node
+npm install
+
+# 3. Start the node
+node bin/beepm-node.js
+# Listens on http://localhost:3064
+# Creates config at ~/.beepm-node/config.json
+
+# 4. In a new terminal, expose via cloudflared tunnel
+cloudflared tunnel --url http://localhost:3064
+# Copy the printed https://xxx.trycloudflare.com URL
+
+# 5. Update config with your tunnel URL
+# Stop node (Ctrl+C), edit ~/.beepm-node/config.json:
+{
+  "publicUrl": "https://YOUR-TUNNEL-URL.trycloudflare.com",
+  "gatewayUrl": "https://beepm-gateway.claws.page",
+  "port": 3064
+}
+
+# 6. Restart node
+node bin/beepm-node.js
+
+# 7. Open your tunnel URL in a browser → scan QR code with your phone
+# Opens Telegram mini app → sign in → pair → start tracking
+```
+
+### Reset for fresh demo
+```bash
+curl -X POST http://localhost:3064/pair/unpair
+# In mini app: tap "sign out" button (top right)
+```
+
+**Want AI help?** Point your AI agent at [`SKILL.md`](SKILL.md) — works with Claude Code, Cursor, GitHub Copilot Workspace, or any CLI agent.
 
 ---
 

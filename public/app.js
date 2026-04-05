@@ -34,8 +34,16 @@ function updateChip() {
     const c = $('userChip');
     c.textContent = state.wallet.slice(0,6)+'…'+state.wallet.slice(-4);
     c.classList.add('ok');
+    $('signOutBtn').classList.remove('hidden');
   }
 }
+
+$('signOutBtn').onclick = () => {
+  if (confirm('Sign out and clear all local data?')) {
+    localStorage.clear();
+    location.reload();
+  }
+};
 
 // ============ Encryption (AES-GCM with wallet-derived key) ============
 async function deriveEncKey() {
