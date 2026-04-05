@@ -53,9 +53,10 @@ cd "$INSTALL_DIR/node"
 npm install --silent
 echo "✅ Dependencies installed"
 
-# Configure
+# Configure (wipe any old state for fresh install)
 echo ""
 echo "⚙️  Configuring..."
+rm -rf ~/.beepm-node
 mkdir -p ~/.beepm-node/data
 cat > ~/.beepm-node/config.json <<EOF
 {
