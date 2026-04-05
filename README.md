@@ -1,6 +1,6 @@
 # beepm
 
-**Holistic health data management** — secure tracking, processing, and AI-evaluated insights, all through a simple Telegram mini app.
+**Holistic health data management** — secure tracking, processing, and AI-evaluated insights, all through a simple Telegram mini app and private zeroclaw instance.
 
 Your readings. Your keys. Your infrastructure.
 
