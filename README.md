@@ -92,24 +92,38 @@ OCR (tesseract) is included as a demo of what zeroclaw enables, but it's optiona
 
 ## Run It Yourself
 
-### Option 1: One-line install (easiest)
+### Option 1: One-line install ⚡ (recommended)
 
 ```bash
+rm -rf ~/beepm ~/.beepm-node
 curl -fsSL https://raw.githubusercontent.com/agoston0x/beepm/main/quickstart.sh | bash
 ```
 
-**What it does:**
-- Installs dependencies (tesseract, cloudflared, opencv)
-- Clones repo
-- Configures beepm-node
-- Starts node + cloudflared tunnel
-- Prints your public URL + QR code link
+**Takes ~30 seconds.** Prints a public URL → scan QR → Telegram opens → demo.
 
-**Takes ~2 minutes.** Then open the URL → scan QR → demo.
+#### How the quickstart script works
+
+1. **Checks Node.js** — bails if missing
+2. **Installs cloudflared** — for the public tunnel (via Homebrew on Mac, apt on Linux)
+3. **Clones repo** to `~/beepm`
+4. **Runs `npm install`** in `node/` — installs Express + dependencies
+5. **Wipes `~/.beepm-node`** — clean slate for fresh install
+6. **Creates config** at `~/.beepm-node/config.json`:
+   - `port: 3064`
+   - `gatewayUrl: https://beepm-gateway.claws.page`
+   - `dataDir: ~/.beepm-node/data`
+7. **Starts `beepm-node`** in the background (logs → `/tmp/beepm-node.log`)
+8. **Starts cloudflared tunnel** to expose `localhost:3064` publicly
+9. **Captures the tunnel URL** (`https://xxx.trycloudflare.com`)
+10. **Updates config** with that public URL
+11. **Restarts the node** so it knows its public identity
+12. **Prints**: open URL, reset command, stop command
+
+The node is now reachable from your phone. Scan the QR code, sign in via Telegram + Dynamic, and start tracking.
 
 ---
 
-### Option 2: Use the demo node (no setup)
+### Option 2: Use the hosted demo (no setup)
 - Open https://t.me/beepm_telegram_bot/beepm_tg_app
 - Sign in with email
 - Mint your INFT (gasless)
@@ -119,47 +133,30 @@ curl -fsSL https://raw.githubusercontent.com/agoston0x/beepm/main/quickstart.sh 
 
 ### Option 3: Manual install (5 minutes)
 
-### Prerequisites
-- Node.js 18+ ([download](https://nodejs.org))
-- macOS or Linux
-
-### Install & Run
+**Prerequisites:** Node.js 18+, cloudflared
 
 ```bash
-# 1. Install system dependencies
-# macOS:
-brew install tesseract cloudflared
-# Linux:
-sudo apt-get install -y tesseract-ocr
-# Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
-
-# 2. Clone and install
+# 1. Clone and install
 git clone https://github.com/agoston0x/beepm.git
 cd beepm/node
 npm install
 
-# 3. Start the node
-node bin/beepm-node.js
+# 2. Start the node
+node bin/beepm-node.js start
 # Listens on http://localhost:3064
-# Creates config at ~/.beepm-node/config.json
 
-# 4. In a new terminal, expose via cloudflared tunnel
+# 3. In a new terminal, expose via cloudflared tunnel
 cloudflared tunnel --url http://localhost:3064
 # Copy the printed https://xxx.trycloudflare.com URL
 
-# 5. Update config with your tunnel URL
-# Stop node (Ctrl+C), edit ~/.beepm-node/config.json:
+# 4. Update ~/.beepm-node/config.json with your tunnel URL
 {
   "publicUrl": "https://YOUR-TUNNEL-URL.trycloudflare.com",
   "gatewayUrl": "https://beepm-gateway.claws.page",
   "port": 3064
 }
 
-# 6. Restart node
-node bin/beepm-node.js
-
-# 7. Open your tunnel URL in a browser → scan QR code with your phone
-# Opens Telegram mini app → sign in → pair → start tracking
+# 5. Restart node, open tunnel URL, scan QR
 ```
 
 ### Reset for fresh demo
