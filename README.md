@@ -1,34 +1,173 @@
 # beepm
 
-Private blood pressure tracking. Your data, your keys.
+**Holistic health data management** — secure tracking, processing, and AI-evaluated insights, all through a simple Telegram mini app.
 
-- **Client-side OCR** — 7-segment LCD reading via nanoclaw + ssocr
-- **Client-side encryption** — AES-GCM, key derived from wallet
-- **Private inference** — 0G TEE Compute for analysis
-- **Data sovereignty** — run nanoclaw locally or on your own VPS
-
-## Stack
-
-- Frontend: HTML/JS, Tesseract.js fallback, Telegram Mini App SDK
-- Backend (nanoclaw): Node.js + Express, ssocr for 7-segment OCR
-- Auth: Dynamic wallet (email/passkey/social)
-- Storage: 0G Storage (encrypted)
-- Compute: 0G TEE inference
-
-## Run locally
-
-```bash
-npm install
-node server.js
-```
-
-App at http://localhost:3061
-
-## Requirements
-
-- `ssocr` binary on server (`apt install ssocr`)
-- Node 18+
+Your readings. Your keys. Your infrastructure.
 
 ---
 
-ETHGlobal Cannes 2026
+## The Problem
+
+LLMs can analyze health data, but they can't:
+- Encrypt/decrypt it securely
+- Store it privately on your infrastructure
+- Pull/push to local databases
+- Run OCR on photos
+- Maintain long-term state
+
+**beepm** solves this by combining **0G's private TEE inference** with **zeroclaw** — a local agent runtime that gives LLMs hands: storage, encryption, OCR, and more.
+
+---
+
+## What It Does
+
+- **Track**: Blood pressure, weight, body composition — manual entry or photo capture
+- **Secure**: AES-GCM encryption with keys derived from your Dynamic wallet
+- **Evaluate**: Private LLM analysis via 0G's TEE network (qwen-2.5-7b)
+- **Store**: Encrypted readings on infrastructure you control (VPS, home server, or laptop)
+- **Access**: Simple Telegram mini app — no accounts, no cloud, no surveillance
+
+OCR (tesseract) is included as a demo of what zeroclaw enables, but it's optional. The focus is **secure, private, AI-enhanced health tracking**.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────┐
+│ Telegram Mini App   │  ← simple UI, Telegram-native
+│ (Dynamic WaaS)      │
+└──────────┬──────────┘
+           │ HTTPS
+           ▼
+┌─────────────────────┐
+│ beepm-node          │  ← YOUR infrastructure
+│ (zeroclaw skill)    │     - stores encrypted readings
+│                     │     - runs OCR (optional)
+│ Port: 3064          │     - calls gateway for inference
+└──────────┬──────────┘
+           │ HTTPS + JWT
+           ▼
+┌─────────────────────┐
+│ beepm-gateway       │  ← verifies INFT ownership
+│ (multi-tenant)      │     sponsors gasless mints
+│                     │     gates 0G API access
+└──────────┬──────────┘
+           │ HTTPS
+           ▼
+┌─────────────────────┐
+│ 0G TEE Compute      │  ← private inference
+│ qwen-2.5-7b         │     verifiable execution
+└─────────────────────┘
+```
+
+**Key insight**: The LLM never sees your raw data. Readings are encrypted client-side. The LLM only sees anonymized summaries you choose to send for analysis.
+
+---
+
+## Tech Stack
+
+### Frontend
+- Telegram Mini App SDK
+- Dynamic Labs SDK (embedded wallets, email OTP, WaaS)
+- Native Web Crypto API (AES-GCM encryption)
+
+### Your Node (zeroclaw + beepm skill)
+- Node.js + Express
+- Tesseract OCR (optional, for photo capture)
+- OpenCV preprocessing (optional, improves OCR accuracy)
+- JSON file storage (encrypted blobs)
+
+### Gateway (multi-tenant)
+- ethers.js v6 (0G chain reads, gasless INFT minting)
+- JWT auth (wallet signature verification)
+- 0G Compute proxy (INFT-gated API access)
+
+### Blockchain
+- **0G Newton Testnet** (chain 16602) — INFT contract, TEE inference
+- **Dynamic WaaS** — embedded wallets, no seed phrases
+- **Hardhat + OpenZeppelin** — INFT contract (ERC-721)
+
+---
+
+## Run It Yourself
+
+**Option 1: Use the demo node** (easiest)
+- Open https://t.me/beepm_telegram_bot/beepm_tg_app
+- Sign in with email
+- Mint your INFT (gasless)
+- Start tracking
+
+**Option 2: Run your own node** (private)
+1. Clone this repo
+2. Point your AI agent at `SKILL.md` — it will:
+   - Install dependencies (tesseract, opencv, node)
+   - Start beepm-node on port 3064
+   - Expose it via cloudflared tunnel (free HTTPS)
+   - Generate a pairing QR code
+3. Scan the QR with your phone → Telegram mini app opens, pre-paired
+
+**Your agent can use**: Claude Code, Cursor, GitHub Copilot Workspace, or any CLI agent.
+
+---
+
+## Security Model
+
+1. **Client-side encryption**: readings encrypted in the mini app before leaving your device
+2. **Wallet-derived keys**: AES-256-GCM key = SHA-256(wallet.sign("beepm · derive encryption key"))
+3. **Your infrastructure**: node runs on a machine you control, not ours
+4. **INFT-gated inference**: only NFT holders can call the gateway → prevents abuse
+5. **0G TEE**: inference runs in a trusted execution environment, verifiable on-chain
+
+---
+
+## What Makes This Different
+
+### vs. Apple Health / Google Fit
+- **They own your data**. You don't.
+- **They can't run private AI**. We do (0G TEE).
+- **They can't be self-hosted**. beepm can.
+
+### vs. LLM-only health apps
+- **LLMs alone can't encrypt**. zeroclaw adds crypto primitives.
+- **LLMs alone can't persist state**. zeroclaw adds storage.
+- **LLMs alone can't OCR photos**. zeroclaw adds vision tooling.
+
+### vs. blockchain health records
+- **Most are just pointers to centralized storage**. beepm stores encrypted blobs on your node.
+- **Most require gas fees**. beepm mints are gasless (sponsored).
+- **Most have no inference**. beepm integrates 0G TEE for AI analysis.
+
+---
+
+## Roadmap
+
+### v1 (current)
+- [x] Telegram mini app
+- [x] Dynamic wallet auth
+- [x] Client-side encryption
+- [x] Manual BP/weight entry
+- [x] Photo OCR (tesseract)
+- [x] 0G TEE inference
+- [x] zeroclaw skill (VPS/tunnel)
+
+### v2 (post-hackathon)
+- [ ] ENS subdomains (e.g., `h3x9k2.beepm.agoston.base.eth`) for encrypted profiles
+- [ ] Local zeroclaw install via gateway relay (no public HTTPS needed)
+- [ ] Export encrypted readings (CSV, JSON)
+- [ ] Passkey-first auth (replace email OTP)
+- [ ] Multi-device sync via 0G Storage
+- [ ] Trend charts + long-term analysis
+
+---
+
+## Built With
+
+- [0G](https://0g.ai) — decentralized AI compute + storage
+- [Dynamic](https://dynamic.xyz) — embedded wallets
+- [zeroclaw](https://github.com/zeroclaw-labs/zeroclaw) — local agent runtime
+- [Telegram](https://core.telegram.org/bots/webapps) — mini app platform
+
+---
+
+**ETHGlobal Cannes 2026** | [Demo](https://beepm.claws.page) | [Install](https://github.com/agoston0x/beepm/blob/main/SKILL.md)
