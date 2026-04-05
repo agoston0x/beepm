@@ -109,10 +109,27 @@ function requireAuth(req, res, next) {
   catch (e) { return res.status(401).json({ error: 'invalid token' }); }
 }
 
-// Gated 0G proxy
+// Gated 0G proxy (with demo fallback)
 app.post('/api/infer', requireAuth, async (req, res) => {
   const { messages, temperature } = req.body;
   if (!Array.isArray(messages)) return res.status(400).json({ error: 'messages must be array' });
+  
+  const genMockReply = (msg) => {
+    const userMsg = msg || '';
+    if (userMsg.includes('BP:') || userMsg.includes('blood pressure')) {
+      const match = userMsg.match(/(\d{2,3})\/(\d{2,3})/);
+      if (match) {
+        const sys = parseInt(match[1]), dia = parseInt(match[2]);
+        if (sys < 120 && dia < 80) return "Blood pressure is in the normal range. Continue healthy habits.";
+        if (sys < 130 && dia < 85) return "Slightly elevated. Monitor regularly and maintain balanced diet.";
+        if (sys < 140 && dia < 90) return "Stage 1 hypertension range. Consider lifestyle changes.";
+        return "Elevated reading. Recommend consulting healthcare professional.";
+      }
+    }
+    if (userMsg.includes('kg') || userMsg.includes('Weight:')) return "Weight tracking helps monitor long-term trends. Consistency is key.";
+    return "Data logged. Continue tracking for meaningful insights over time.";
+  };
+  
   try {
     const t0 = Date.now();
     const completion = await ai.chat.completions.create({
@@ -120,7 +137,7 @@ app.post('/api/infer', requireAuth, async (req, res) => {
       messages,
       temperature: temperature ?? 0.5
     });
-    console.log(`[gateway] infer · ${req.user.wallet.slice(0,10)} · ${Date.now() - t0}ms · ${completion.usage?.total_tokens || '?'} tk`);
+    console.log(`[gateway] 0G infer · ${req.user.wallet.slice(0,10)} · ${Date.now() - t0}ms`);
     res.json({
       reply: completion.choices[0].message.content,
       model: OG_MODEL,
@@ -128,8 +145,13 @@ app.post('/api/infer', requireAuth, async (req, res) => {
       tee_verified: true
     });
   } catch (e) {
-    console.error('[gateway] 0g error:', e.message);
-    res.status(500).json({ error: e.message });
+    console.log(`[gateway] 0G unavailable, demo fallback · ${req.user.wallet.slice(0,10)}`);
+    const userMsg = messages.find(m => m.role === 'user')?.content || '';
+    res.json({
+      reply: genMockReply(userMsg),
+      model: 'demo-fallback',
+      tee_verified: false
+    });
   }
 });
 
