@@ -12,7 +12,9 @@ const DATA_FILE = path.join(__dirname, 'readings.json');
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static('public'));
+app.use(express.static('public', { extensions: ['html'] }));
+// Clean URLs for web pages
+app.get(['/install','/dashboard','/settings'], (req,res)=>res.sendFile(require('path').join(__dirname,'public',req.path.slice(1)+'.html')));
 
 function loadReadings() {
   try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { return {}; }

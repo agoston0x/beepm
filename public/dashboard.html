@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>beepm — dashboard</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05070b;--ink:#fff;--dim:#8a8f9c;--line:rgba(255,255,255,0.08);--card:rgba(255,255,255,0.03);--accent:#ff3366;--accent2:#9933ff;--ok:#22c9a0;--warn:#f5a524;--bad:#ff4060}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased}
+body{line-height:1.5;overflow-x:hidden;padding-bottom:4rem}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.5rem}
+.bg-gradient{position:fixed;top:-30%;right:-40%;width:900px;height:900px;border-radius:50%;background:conic-gradient(from 180deg,#ff3366,#9933ff,#6633ff,transparent 250deg);filter:blur(80px);opacity:0.25;z-index:-1;pointer-events:none}
+nav{display:flex;justify-content:space-between;align-items:center;padding:1.5rem 0}
+.logo{font-family:'Archivo Black',sans-serif;font-size:1.4rem;letter-spacing:-0.02em}
+.nav-links{display:flex;gap:2rem;font-size:0.9rem;font-weight:500;color:var(--dim);align-items:center}
+.nav-links a:hover{color:var(--ink)}
+.nav-links a.active{color:var(--ink)}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:0.3rem 0.75rem;font-size:0.72rem;font-family:'DM Mono',monospace;color:var(--dim)}
+
+h1{font-family:'Archivo Black',sans-serif;font-size:clamp(2.2rem,5vw,3.2rem);letter-spacing:-0.02em;line-height:1.05;margin:1.5rem 0 0.5rem}
+.lead{color:var(--dim);margin-bottom:2rem}
+
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.25rem}
+.stat .label{font-family:'Archivo Black',sans-serif;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--dim);margin-bottom:0.5rem}
+.stat .value{font-family:'Archivo Black',sans-serif;font-size:2.2rem;letter-spacing:-0.02em;line-height:1}
+.stat .sub{color:var(--dim);font-size:0.8rem;margin-top:0.4rem}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.card-head h2{font-family:'Archivo Black',sans-serif;font-size:1.2rem;letter-spacing:-0.01em}
+.chart{width:100%;height:180px;background:rgba(0,0,0,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:'DM Mono',monospace;font-size:0.8rem}
+svg.chart-svg{width:100%;height:100%}
+
+.reading-row{display:grid;grid-template-columns:1fr auto auto;gap:1rem;padding:0.85rem 0;border-bottom:1px solid var(--line);align-items:center;font-size:0.9rem}
+.reading-row:last-child{border-bottom:none}
+.reading-row .val{font-family:'DM Mono',monospace;font-weight:600;font-size:1rem}
+.reading-row .badge{font-family:'DM Mono',monospace;font-size:0.7rem;padding:0.2rem 0.6rem;border-radius:999px}
+.reading-row .badge.normal{background:rgba(34,201,160,0.15);color:var(--ok)}
+.reading-row .badge.elevated{background:rgba(245,165,36,0.15);color:var(--warn)}
+.reading-row .badge.high{background:rgba(255,64,96,0.15);color:var(--bad)}
+.reading-row .when{color:var(--dim);font-family:'DM Mono',monospace;font-size:0.72rem;text-align:right}
+.empty{color:var(--dim);font-size:0.9rem;padding:1rem 0;text-align:center}
+
+.not-signed{text-align:center;padding:3rem 1.5rem}
+.not-signed h2{font-family:'Archivo Black',sans-serif;font-size:1.8rem;margin-bottom:0.75rem;letter-spacing:-0.01em}
+.not-signed p{color:var(--dim);margin-bottom:1.5rem}
+.btn{display:inline-block;padding:0.85rem 1.5rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:10px;font-weight:600;text-decoration:none;font-family:'Montserrat',sans-serif;border:none;cursor:pointer;font-size:0.9rem}
+.btn:hover{opacity:0.88}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:1rem;padding:1.5rem;background:#fff;border-radius:12px;max-width:260px;margin:0 auto}
+.qr-box svg{width:220px;height:220px}
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+<div class="wrap">
+  <nav>
+    <a href="/" class="logo">beepm</a>
+    <div class="nav-links">
+      <a href="/install">install</a>
+      <a href="/dashboard" class="active">dashboard</a>
+      <a href="/settings">settings</a>
+      <span class="chip" id="walletChip">signed out</span>
+    </div>
+  </nav>
+
+  <div id="signed-out" class="card not-signed" style="display:none">
+    <h2>sign in with your wallet</h2>
+    <p>scan this QR with your beepm telegram mini app to sign in.</p>
+    <div class="qr-box" id="qrBox">
+      <div style="color:#555;font-family:'DM Mono',monospace;font-size:0.8rem">loading QR…</div>
+    </div>
+    <p style="margin-top:1.5rem;font-size:0.85rem">no account yet? <a href="https://t.me/beepm_telegram_bot/beepm_tg_app" style="color:var(--ink);text-decoration:underline">open the mini app →</a></p>
+  </div>
+
+  <div id="signed-in" style="display:none">
+    <h1>dashboard</h1>
+    <p class="lead" id="leadText">—</p>
+
+    <div class="grid">
+      <div class="stat"><div class="label">latest</div><div class="value" id="sLatest">—</div><div class="sub" id="sLatestWhen">no readings</div></div>
+      <div class="stat"><div class="label">7-day avg</div><div class="value" id="sAvg">—</div><div class="sub" id="sAvgN">0 readings</div></div>
+      <div class="stat"><div class="label">status</div><div class="value" id="sStatus">—</div><div class="sub" id="sStatusSub">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>trend</h2><span style="font-size:0.75rem;color:var(--dim);font-family:'DM Mono',monospace" id="trendRange">last 30d</span></div>
+      <div class="chart" id="chart"><div style="color:var(--dim);font-family:'DM Mono',monospace;font-size:0.8rem">no data</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>recent readings</h2><a href="/settings" style="font-size:0.8rem;color:var(--dim)">export →</a></div>
+      <div id="readingsList"><div class="empty">—</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+const API = 'https://beepm-gateway.claws.page';
+const ZC_URL_KEY = 'beepm.zeroclawdUrl';
+const SESSION_KEY = 'beepm.session';
+
+function classify(sys, dia){
+  if(sys>=140||dia>=90) return {s:'high',l:'hypertensive'};
+  if(sys>=130||dia>=85) return {s:'elevated',l:'elevated'};
+  if(sys<90||dia<60) return {s:'high',l:'low'};
+  return {s:'normal',l:'normal'};
+}
+
+async function loadSession(){
+  const session = JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+  const zcUrl = localStorage.getItem(ZC_URL_KEY);
+  if(!session || !zcUrl){ showSignIn(); return; }
+  try{
+    // verify session still has INFT
+    const r = await fetch(`${API}/api/owns/${session.wallet}`).then(r=>r.json());
+    if(!r.owns){ showSignIn(); return; }
+    showDashboard(session, zcUrl);
+  } catch(e){ showSignIn(); }
+}
+
+async function showSignIn(){
+  document.getElementById('signed-out').style.display='block';
+  document.getElementById('signed-in').style.display='none';
+  const nonce = Math.random().toString(36).slice(2)+Date.now();
+  const payload = JSON.stringify({v:1,type:'beepm-web-signin',nonce,origin:location.origin});
+  // store nonce for poll
+  sessionStorage.setItem('beepm.signin.nonce', nonce);
+  const svg = await QRCode.toString(payload, {type:'svg',width:220,margin:1,color:{dark:'#05070b',light:'#ffffff'}});
+  document.getElementById('qrBox').innerHTML = svg;
+  // Poll for signin (would need backend support - placeholder for now)
+}
+
+async function showDashboard(session, zcUrl){
+  document.getElementById('signed-out').style.display='none';
+  document.getElementById('signed-in').style.display='block';
+  document.getElementById('walletChip').textContent = session.wallet.slice(0,6)+'…'+session.wallet.slice(-4);
+  document.getElementById('leadText').textContent = 'reading from your zeroclawd at ' + new URL(zcUrl).hostname;
+
+  try{
+    const res = await fetch(zcUrl + '/api/readings').then(r=>r.json());
+    const enc = res.readings || [];
+    if(!enc.length){
+      document.getElementById('sLatest').textContent = '—';
+      document.getElementById('readingsList').innerHTML = '<div class="empty">no readings yet. capture one in the telegram mini app.</div>';
+      return;
+    }
+    // Note: client-side decryption would happen here with wallet-derived key
+    // For now show OCR text if available as summary
+    renderReadings(enc);
+  } catch(e){
+    document.getElementById('readingsList').innerHTML = '<div class="empty">could not reach zeroclawd at '+zcUrl+'</div>';
+  }
+}
+
+function renderReadings(readings){
+  const list = document.getElementById('readingsList');
+  const recent = readings.slice().reverse().slice(0,20);
+  list.innerHTML = '';
+  for(const r of recent){
+    const div = document.createElement('div');
+    div.className='reading-row';
+    const ocrText = r.ocr || '—';
+    const when = new Date(r.timestamp).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    div.innerHTML = `<span class="val">${ocrText}</span><span class="badge normal">encrypted</span><span class="when">${when}</span>`;
+    list.appendChild(div);
+  }
+  document.getElementById('sLatest').textContent = readings.length;
+  document.getElementById('sLatestWhen').textContent = readings.length+' total readings';
+}
+
+loadSession();
+</script>
+</body>
+</html>

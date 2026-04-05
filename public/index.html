@@ -1,64 +1,185 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>beepm — private health tracking</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>beepm — private health infra</title>
+<meta name="description" content="Your health data. Your keys. Your infra.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070b;
+  --ink:#ffffff;
+  --dim:#8a8f9c;
+  --line:rgba(255,255,255,0.08);
+  --card:rgba(255,255,255,0.03);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden;line-height:1.5}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 1.5rem}
+
+/* hero gradient arc */
+.hero{position:relative;padding:4rem 0 8rem;overflow:hidden}
+.arc{position:absolute;top:-40%;right:-30%;width:900px;height:900px;border-radius:50%;
+  background:conic-gradient(from 180deg at 50% 50%,
+    #ff3366 0deg,#9933ff 80deg,#6633ff 150deg,#2233aa 200deg,transparent 280deg);
+  filter:blur(60px);opacity:0.55;pointer-events:none;z-index:0}
+.arc2{position:absolute;top:-60%;right:-50%;width:1400px;height:1400px;border-radius:50%;
+  border:1px solid rgba(255,100,100,0.2);pointer-events:none;z-index:0}
+
+nav{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:1.5rem 0}
+.logo{font-family:'Archivo Black',sans-serif;font-size:1.4rem;letter-spacing:-0.02em}
+.nav-links{display:flex;gap:2rem;font-size:0.9rem;font-weight:500;color:var(--dim)}
+.nav-links a:hover{color:var(--ink)}
+
+.hero-content{position:relative;z-index:1;padding-top:4rem;max-width:720px}
+h1{font-family:'Archivo Black',sans-serif;font-size:clamp(3rem,8vw,6rem);line-height:0.95;letter-spacing:-0.03em;margin-bottom:1.5rem}
+.tagline{font-size:1.3rem;color:var(--dim);max-width:520px;margin-bottom:2.5rem;font-weight:400}
+.cta-row{display:flex;gap:1rem;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.9rem 1.5rem;font-family:'Montserrat',sans-serif;font-weight:600;font-size:0.95rem;border-radius:8px;cursor:pointer;border:none;transition:all 0.15s}
+.btn-primary{background:var(--ink);color:var(--bg)}
+.btn-primary:hover{opacity:0.85}
+.btn-secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-secondary:hover{border-color:var(--ink)}
+
+/* how section */
+.section{position:relative;padding:5rem 0;border-top:1px solid var(--line)}
+.section-label{font-family:'Archivo Black',sans-serif;font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem}
+h2{font-family:'Archivo Black',sans-serif;font-size:clamp(2rem,5vw,3rem);letter-spacing:-0.02em;line-height:1.05;margin-bottom:2.5rem}
+
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+@media(max-width:720px){.grid-3{grid-template-columns:1fr}}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.5rem}
+.tile-num{font-family:'Archivo Black',sans-serif;font-size:2.5rem;color:var(--dim);opacity:0.4;margin-bottom:0.5rem;line-height:1}
+.tile h3{font-family:'Archivo Black',sans-serif;font-size:1.15rem;margin-bottom:0.5rem;letter-spacing:-0.01em}
+.tile p{color:var(--dim);font-size:0.95rem}
+
+/* arch diagram */
+.arch{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:2rem}
+@media(max-width:720px){.arch{grid-template-columns:1fr}}
+.arch-block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.25rem}
+.arch-block .k{font-family:'Archivo Black',sans-serif;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:0.5rem}
+.arch-block .v{font-size:1.05rem;font-weight:600;margin-bottom:0.3rem}
+.arch-block .d{font-size:0.85rem;color:var(--dim)}
+.arch-block.highlight{border-color:rgba(255,51,102,0.3);background:linear-gradient(135deg,rgba(255,51,102,0.05),rgba(153,51,255,0.05))}
+
+/* install */
+.code{font-family:'DM Mono','Menlo',monospace;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:8px;padding:1rem 1.25rem;font-size:0.85rem;line-height:1.6;overflow-x:auto;white-space:pre;color:#d0d5e0}
+.code .c{color:var(--dim)}
+.code .k{color:#ff6b8a}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:2.5rem 0;margin-top:3rem;font-size:0.85rem;color:var(--dim)}
+.foot-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+</style>
 </head>
 <body>
-<div class="container">
-  <header class="site-header">
+<div class="wrap">
+  <nav>
     <div class="logo">beepm</div>
-    <nav class="nav">
-      <a href="/app.html">App</a>
-    </nav>
-  </header>
-
-  <main class="hero">
-    <h1 class="headline">Your health data.<br><span class="accent">Your keys.</span></h1>
-    <p class="subtitle">Private blood pressure tracking. Encrypted client-side. Analyzed by AI running in a TEE. You own the data, the keys, and the infrastructure.</p>
-    <div class="cta-row">
-      <a href="/app.html" class="btn-primary">Start tracking</a>
-      <a href="#how" class="btn-secondary">How it works</a>
+    <div class="nav-links">
+      <a href="#how">how</a>
+      <a href="#install">install</a>
+      <a href="#arch">architecture</a>
+      <a href="https://t.me/beepm_telegram_bot/beepm_tg_app">app</a>
     </div>
-  </main>
-
-  <section class="pillars" id="how">
-    <div class="pillar">
-      <div class="pillar-num">01</div>
-      <h3>Capture</h3>
-      <p>Photograph your blood pressure monitor. OCR runs in your browser. The image never leaves your device.</p>
-    </div>
-    <div class="pillar">
-      <div class="pillar-num">02</div>
-      <h3>Encrypt</h3>
-      <p>Your reading is encrypted client-side with a key derived from your wallet signature. Only you can decrypt.</p>
-    </div>
-    <div class="pillar">
-      <div class="pillar-num">03</div>
-      <h3>Analyze</h3>
-      <p>Private LLM inference runs in a 0G TEE. Insights are delivered to you without exposing your data to any third party.</p>
-    </div>
-  </section>
-
-  <section class="stack">
-    <div class="stack-label">Built on</div>
-    <div class="stack-items">
-      <span>0G Storage</span>
-      <span>0G Compute</span>
-      <span>Dynamic</span>
-      <span>Tesseract.js</span>
-    </div>
-  </section>
-
-  <footer class="site-footer">
-    <div class="footer-left">beepm · private health infra</div>
-    <div class="footer-right">v0.1 · ETHGlobal Cannes 2026</div>
-  </footer>
+  </nav>
 </div>
+
+<section class="hero">
+  <div class="arc"></div>
+  <div class="arc2"></div>
+  <div class="wrap">
+    <div class="hero-content">
+      <h1>your health<br>data.<br>your keys.</h1>
+      <p class="tagline">private blood pressure tracking. self-hosted. client-side encrypted. 0G TEE inference.</p>
+      <div class="cta-row">
+        <a href="https://t.me/beepm_telegram_bot/beepm_tg_app" class="btn btn-primary">open app →</a>
+        <a href="#install" class="btn btn-secondary">install zeroclawd</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="wrap">
+    <p class="section-label">how it works</p>
+    <h2>data never leaves<br>your infra.</h2>
+    <div class="grid-3">
+      <div class="tile">
+        <div class="tile-num">01</div>
+        <h3>install zeroclawd</h3>
+        <p>run the daemon on your laptop or VPS. docker one-liner. it owns your data.</p>
+      </div>
+      <div class="tile">
+        <div class="tile-num">02</div>
+        <h3>mint access NFT</h3>
+        <p>open telegram mini app. dynamic wallet creates automatically. mint the access NFT to unlock 0G inference.</p>
+      </div>
+      <div class="tile">
+        <div class="tile-num">03</div>
+        <h3>pair & capture</h3>
+        <p>scan the pairing QR. photo your monitor. OCR runs on your daemon. 0G TEE analyzes. encrypted end-to-end.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="arch">
+  <div class="wrap">
+    <p class="section-label">architecture</p>
+    <h2>four parts.<br>one of them is you.</h2>
+    <div class="arch">
+      <div class="arch-block highlight">
+        <div class="k">your infra</div>
+        <div class="v">zeroclawd</div>
+        <div class="d">daemon on your machine. stores encrypted readings, runs python OCR, calls gateway for 0G inference.</div>
+      </div>
+      <div class="arch-block">
+        <div class="k">daily use</div>
+        <div class="v">telegram mini app</div>
+        <div class="d">capture flow. camera → zeroclawd OCR → encrypted save. dynamic wallet for auth.</div>
+      </div>
+      <div class="arch-block">
+        <div class="k">auth</div>
+        <div class="v">beepm gateway</div>
+        <div class="d">verifies NFT ownership on-chain. issues JWT. rate-limits 0G inference per NFT holder.</div>
+      </div>
+      <div class="arch-block">
+        <div class="k">compute</div>
+        <div class="v">0G TEE network</div>
+        <div class="d">decentralized inference in trusted execution environments. qwen 2.5 7b. verifiable.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="install">
+  <div class="wrap">
+    <p class="section-label">install zeroclawd</p>
+    <h2>one command.<br>thirty seconds.</h2>
+    <div class="code"><span class="c"># docker</span>
+<span class="k">docker run</span> -d -p 3064:3064 \
+  -v ~/.zeroclawd:/data \
+  agoston0x/zeroclawd
+
+<span class="c"># or npm</span>
+<span class="k">npm install</span> -g zeroclawd
+<span class="k">zeroclawd</span> init
+<span class="k">zeroclawd</span> start</div>
+    <p style="margin-top:1.5rem;color:var(--dim);font-size:0.9rem">open <span class="code" style="display:inline;padding:0.15rem 0.5rem">http://localhost:3064</span> → scan pairing QR with telegram mini app.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div>beepm · ETHGlobal cannes 2026</div>
+    <div>built on 0G · dynamic · telegram</div>
+  </div>
+</footer>
+
 </body>
 </html>
