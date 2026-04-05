@@ -102,8 +102,36 @@ OCR (tesseract) is included as a demo of what zeroclaw enables, but it's optiona
 
 ### Blockchain
 - **0G Newton Testnet** (chain 16602) — INFT contract, TEE inference
+- **Base Sepolia** (chain 84532) — ENS-style registry for health IDs
 - **Dynamic WaaS** — embedded wallets, no seed phrases
 - **Hardhat + OpenZeppelin** — INFT contract (ERC-721)
+
+---
+
+## Deployed Contracts
+
+### Base Sepolia (Testnet)
+
+**BeePMRegistry:** `0x277632f1951Af86F6F2acC962a414Eb7E409be34`
+- [View on Basescan](https://sepolia.basescan.org/address/0x277632f1951Af86F6F2acC962a414Eb7E409be34#code)
+- Stores encrypted health profiles + ENS-style subdomains
+- Each user gets `<6char>.beepm.agoston.base.eth`
+- Gasless registration (gateway sponsors transactions)
+
+**Query example:**
+```bash
+# Check if subdomain exists (replace abc123 with actual subdomain)
+cast call 0x277632f1951Af86F6F2acC962a414Eb7E409be34 \
+  "getProfile(string)" "abc123" \
+  --rpc-url https://sepolia.base.org
+```
+
+Returns: `(address wallet, string encryptedData, uint256 timestamp)`
+
+**Contract functions:**
+- `registerFor(string subdomain, address userWallet, string encryptedData)` — register new subdomain (gateway only)
+- `getProfile(string subdomain)` — retrieve profile by subdomain
+- `getSubdomainByWallet(address wallet)` — lookup subdomain by wallet address
 
 ---
 
